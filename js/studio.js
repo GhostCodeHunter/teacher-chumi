@@ -9,7 +9,7 @@ import { PICTURES, allDesigns, designName, designOptionsHtml, loadPictures } fro
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const KEY = 'teacherChumi.settings.v3';
+const KEY = 'teacherChumi.settings.v4';
 
 const state = {
   book: null, fileName: '', images: [], pageDesigns: {},
@@ -85,6 +85,10 @@ function fillForm() {
 function syncDependents() {
   const s = state.settings;
   $('#customSize').hidden = s.pageSize !== 'Custom';
+  $('#modeHint').textContent = s.contentMode === 'exact'
+    ? 'Every row, column, blank cell and number stays as in your Excel. Only margins, fonts and alignment are arranged.'
+    : 'Chumi also removes empty rows/columns, makes titles and gives numbers the same decimals.';
+  $$('.tidy-only').forEach(el => { el.hidden = s.contentMode === 'exact'; });
   $('#customMargin').hidden = s.margin !== 'custom';
   $('.wm-text').hidden = s.wmType !== 'text';
   $('.wm-image').hidden = s.wmType !== 'image';

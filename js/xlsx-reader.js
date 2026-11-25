@@ -2,6 +2,8 @@
 // Output: { sheets: [{ name, rows: Cell[][], merges: [{r1,c1,r2,c2}], hiddenRows, hiddenCols }] }
 // Cell: null | { t:'n', v:number, fmt:'num'|'pct', dec:number|null } | { t:'s', v:string, err?:true }
 
+import { formatExcel, BUILTIN_FORMATS, isDateFormat } from './excel-format.js';
+
 const MAX_ROWS = 20000;
 const MAX_COLS = 200;
 
@@ -72,10 +74,21 @@ async function readXlsx(buf) {
     const st = xml(stText);
     const custom = {};
     for (const nf of all(st, 'numFmt')) custom[attr(nf, 'numFmtId')] = attr(nf, 'formatCode') || '';
+    const fontsEl = first(st, 'fonts');
+    const boldFont = fontsEl ? Array.from(fontsEl.children).filter(e => e.localName === 'font').map(f => {
+      const b = Array.from(f.children).find(e => e.localName === 'b');
+      return !!b && !/^(0|false)$/i.test(attr(b, 'val') || '');
+    }) : [];
     const cellXfs = first(st, 'cellXfs');
     if (cellXfs) for (const xf of Array.from(cellXfs.children).filter(e => e.localName === 'xf')) {
       const id = +(attr(xf, 'numFmtId') || 0);
-      xfFmt.push(classifyFmt(id, custom[id]));
+      const info = classifyFmt(id, custom[id]);
+      info.code = custom[id] != null ? custom[id] : BUILTIN_FORMATS[id];
+      info.bold = !!boldFont[+(attr(xf, 'fontId') || 0)];
+      const al = Array.from(xf.children).find(e => e.localName === 'alignment');
+      const h = al && attr(al, 'horizontal');
+      if (h && /^(left|center|right|centerContinuous|justify)$/.test(h)) info.align = h === 'centerContinuous' ? 'center' : h === 'justify' ? 'left' : h;
+      xfFmt.push(info);
     }
   }
 
@@ -140,6 +153,13 @@ function serialToDate(serial, date1904, withTime, timeOnly) {
 function parseSheet(doc, strings, xfFmt, date1904) {
   const rows = [];
   const hiddenColSet = new Set();
+  const fmtPr = first(doc, 'sheetFormatPr');
+  const defW = +(attr(fmtPr, 'defaultColWidth') || 0) || ((+(attr(fmtPr, 'baseColWidth') || 8)) + 0.43);
+  const widthOf = [];
+  for (const col of all(doc, 'col')) {
+    const w = +attr(col, 'width');
+    if (w > 0) { const a = +attr(col, 'min'), b = Math.min(+attr(col, 'max'), MAX_COLS); for (let i = a; i <= b; i++) widthOf[i - 1] = w; }
+  }
   for (const col of all(doc, 'col')) {
     if (/^(1|true)$/i.test(attr(col, 'hidden') || '')) {
       const a = +attr(col, 'min'), b = Math.min(+attr(col, 'max'), MAX_COLS);
@@ -160,6 +180,7 @@ function parseSheet(doc, strings, xfFmt, date1904) {
       cIdx = ref ? ref.c : cIdx + 1;
       if (cIdx >= MAX_COLS) continue;
       const t = attr(c, 't') || 'n';
+      const xfi = xfFmt[+(attr(c, 's') || 0)] || { kind: 'num', dec: null };
       const vEl = first(c, 'v');
       const v = vEl ? vEl.textContent : null;
       let cell = null;
@@ -173,13 +194,19 @@ function parseSheet(doc, strings, xfFmt, date1904) {
         const num = parseFloat(v);
         if (!isFinite(num)) cell = { t: 's', v };
         else {
-          const f = xfFmt[+(attr(c, 's') || 0)] || { kind: 'num', dec: null };
-          if (f.kind === 'date') cell = { t: 's', v: serialToDate(num, date1904, f.time, false), date: true };
-          else if (f.kind === 'time') cell = { t: 's', v: serialToDate(num, date1904, true, true), date: true };
-          else cell = { t: 'n', v: num, fmt: f.kind === 'pct' ? 'pct' : 'num', dec: f.dec };
+          const f = xfi;
+          let shown;
+          try { shown = formatExcel(num, f.code, date1904); } catch { shown = undefined; }
+          if (f.kind === 'date' || f.kind === 'time' || (f.code && isDateFormat(f.code))) {
+            cell = { t: 's', v: shown || serialToDate(num, date1904, f.time || f.kind === 'time', f.kind === 'time'), date: true };
+          } else cell = { t: 'n', v: num, fmt: f.kind === 'pct' ? 'pct' : 'num', dec: f.dec, text: shown };
         }
       }
-      if (cell) cells[cIdx] = cell;
+      if (cell) {
+        if (xfi.bold) cell.b = true;
+        if (xfi.align) cell.a = xfi.align;
+        cells[cIdx] = cell;
+      }
     }
     rows[rIdx] = cells;
   }
@@ -203,7 +230,10 @@ function parseSheet(doc, strings, xfFmt, date1904) {
   const mapped = merges
     .filter(m => rowMap[m.r1] != null)
     .map(m => ({ r1: rowMap[m.r1], c1: colMap(m.c1), r2: rowMap[m.r2] ?? rowMap[m.r1], c2: Math.max(colMap(m.c1), colMap(m.c2 + 1) - 1) }));
-  return { rows: out, merges: mapped, hiddenRows, hiddenCols: hiddenColSet.size, truncated };
+  const maxC = out.reduce((m, r) => Math.max(m, r.length), 0);
+  const colWidths = [];
+  for (let i = 0, k = 0; k < maxC && i < MAX_COLS; i++) { if (!keepCol(i)) continue; colWidths.push(widthOf[i] || defW); k++; }
+  return { rows: out, merges: mapped, hiddenRows, hiddenCols: hiddenColSet.size, truncated, colWidths };
 }
 
 function compactCols(r, hidden) {

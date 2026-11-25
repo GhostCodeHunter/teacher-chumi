@@ -14,7 +14,7 @@ export const KID_PALETTE = ['#EC6A73', '#F0A04B', '#5DB8A5', '#5B8FE0', '#9273CF
 
 export const DEFAULTS = {
   title: 'My Maths Book', subtitle: 'Practice Workbook', author: '', institution: '',
-  cover: true, toc: true,
+  contentMode: 'exact', cover: false, toc: false,
   pageSize: 'A4', customW: 210, customH: 297, orientation: 'portrait',
   margin: 'auto', marginMM: 18, mirror: false,
   textFont: 'helvetica', numFont: 'helvetica', numBold: true,
@@ -22,8 +22,8 @@ export const DEFAULTS = {
   numAlign: 'right', grouping: 'none', decimals: 'auto',
   headerMode: 'auto', headingRows: true,
   tableStyle: 'playful', zebra: true, grid: 'all', tableWidth: 'full', equalCols: true,
-  chapterTitles: true,
-  runningHeader: true, pageNumbers: 'center', pageNumFormat: 'n',
+  chapterTitles: false,
+  runningHeader: false, pageNumbers: 'center', pageNumFormat: 'n',
   design: 'none', coverDesign: 'same', accent: '#F0A04B', accent2: '#5DB8A5', ink: '#2E2A26',
   bgOpacity: 1, bgFit: 'cover',
   wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2E2A26', wmImageId: null, wmOnTop: false,
@@ -73,8 +73,17 @@ function cleanText(s) {
 }
 
 // classify one raw cell into a display cell
-function toCell(raw) {
+function toCell(raw, exact) {
+  const c = toCellInner(raw, exact);
+  if (c && raw) { if (raw.b) c.bold = true; if (raw.a) c.align = raw.a; }
+  return c;
+}
+function toCellInner(raw, exact) {
   if (!raw) return null;
+  if (exact && raw.t === 'n' && raw.text != null) {
+    // keep the number exactly as Excel shows it
+    return { kind: 'num', num: raw.v, text: cleanText(raw.text), fixed: true };
+  }
   if (raw.t === 'n') {
     const pct = raw.fmt === 'pct';
     const val = pct ? raw.v * 100 : raw.v;
@@ -94,6 +103,7 @@ function toCell(raw) {
         m = dc && !m[3] ? [m[0], m[1], dc[1], '.' + dc[2], m[4]] : null;
       }
     }
+    if (m && exact) return { kind: 'numtext', text };
     if (m) {
       const digits = m[2].replace(/,/g, '');
       if ((digits.length > 1 && digits[0] === '0' && !m[3]) || digits.length > 15) return { kind: 'numtext', text };
@@ -193,27 +203,47 @@ class TextEngine {
 
 // ---------- sheet analysis ----------
 function analyseSheet(sheet, s, report, label) {
-  let grid = (sheet.rows || []).map(r => Array.from(r || [], toCell));
+  const exact = s.contentMode === 'exact';
+  let grid = (sheet.rows || []).map(r => Array.from(r || [], (c) => toCell(c, exact)));
   const merges = sheet.merges || [];
   const mergedStart = new Map();
   for (const m of merges) if (m.c2 > m.c1) mergedStart.set(m.r1 + ':' + m.c1, m.c2 - m.c1 + 1);
 
   const width = grid.reduce((a, r) => Math.max(a, r.length), 0);
-  // empty columns
+  // empty columns (exact: only the empty edges are trimmed, inner columns like a blank "Answer" stay)
   const used = new Array(width).fill(false);
   grid.forEach(r => r.forEach((c, i) => { if (c) used[i] = true; }));
-  const keep = used.map((u, i) => u ? i : -1).filter(i => i >= 0);
-  const removedCols = width - keep.length;
+  // a merged cell counts as using every column it covers
+  for (const m of merges) for (let i = m.c1; i <= m.c2 && i < width; i++) if (grid[m.r1] && grid[m.r1][m.c1]) used[i] = true;
+  let keep;
+  if (exact) {
+    const a = used.indexOf(true), b = used.lastIndexOf(true);
+    keep = a < 0 ? [] : Array.from({ length: b - a + 1 }, (_, k) => a + k);
+  } else keep = used.map((u, i) => u ? i : -1).filter(i => i >= 0);
+  const removedCols = exact ? 0 : width - keep.length;
+  const colPos = new Map(keep.map((c, k) => [c, k]));
+  // merged cells become one wide cell
+  if (exact) for (const m of merges) {
+    const r = grid[m.r1];
+    if (!r || !r[m.c1] || m.c2 <= m.c1) continue;
+    const a = colPos.get(m.c1); let b = a;
+    for (let c = m.c1 + 1; c <= m.c2; c++) if (colPos.has(c)) b = colPos.get(c);
+    if (a != null && b > a) r[m.c1].span = b - a + 1;
+  }
   grid = grid.map(r => keep.map(i => r[i] || null));
   const nCols = keep.length;
+  const excelWidths = sheet.colWidths ? keep.map(i => sheet.colWidths[i] || 8.43) : null;
 
-  // rows: trim + collapse blanks
+  // rows: trim + collapse blanks (exact: every blank row inside stays as a blank line)
   const rows = [];
   let blank = 0, collapsed = 0;
   grid.forEach((r, ri) => {
     const filled = r.filter(Boolean).length;
     if (!filled) { blank++; return; }
-    if (rows.length && blank) { rows.push({ type: 'spacer' }); if (blank > 1) collapsed += blank - 1; }
+    if (rows.length && blank) {
+      if (exact) for (let k = 0; k < blank; k++) rows.push({ type: 'spacer' });
+      else { rows.push({ type: 'spacer' }); if (blank > 1) collapsed += blank - 1; }
+    }
     blank = 0;
     const firstIdx = r.findIndex(Boolean);
     const merged = mergedStart.get(ri + ':' + keep[firstIdx]) > 1;
@@ -225,7 +255,8 @@ function analyseSheet(sheet, s, report, label) {
   if (collapsed) report.push({ k: 'fix', t: `${label}: joined ${collapsed} extra blank row${collapsed > 1 ? 's' : ''}` });
   if (sheet.truncated) report.push({ k: 'warn', t: `${label}: very long sheet, only the first 20,000 rows are used` });
   if (sheet.hiddenRows || sheet.hiddenCols) report.push({ k: 'info', t: `${label}: skipped hidden rows/columns like Excel` });
-  if (merges.length) report.push({ k: 'info', t: `${label}: merged cells laid out as headings` });
+  if (merges.length) report.push({ k: 'info', t: exact ? `${label}: merged cells kept as in Excel` : `${label}: merged cells laid out as headings` });
+  if (exact) report.push({ k: 'ok', t: `${label}: same rows, columns and numbers as your Excel` });
 
   // headings + header rows
   let headings = 0, headers = 0;
@@ -234,7 +265,7 @@ function analyseSheet(sheet, s, report, label) {
     const r = rows[i];
     if (r.type === 'spacer') { segStart = true; continue; }
     const only = r.filled === 1 ? r.cells.find(Boolean) : null;
-    if (s.headingRows && nCols > 1 && only && only.kind === 'text' && (r.merged || segStart)) {
+    if (!exact && s.headingRows && nCols > 1 && only && only.kind === 'text' && (r.merged || segStart)) {
       r.type = 'heading'; r.text = only.text; headings++; segStart = true; continue;
     }
     if (segStart) {
@@ -269,7 +300,7 @@ function analyseSheet(sheet, s, report, label) {
     if (!r.cells) continue;
     r.cells.forEach((c, i) => {
       if (!c) return;
-      if (c.kind === 'num') {
+      if (c.kind === 'num' && !c.fixed) {
         const want = s.decimals === 'auto' ? (c.pct ? cols[i].pctDec : cols[i].dec) : +s.decimals;
         if (want !== c.dec) mixedDec++;
         c.text = (c.plus ? '+' : '') + formatNumber(c.num, want, s.grouping) + (c.pct ? '%' : '');
@@ -278,7 +309,7 @@ function analyseSheet(sheet, s, report, label) {
   }
   if (mixedDec) report.push({ k: 'fix', t: `${label}: made ${mixedDec} number${mixedDec > 1 ? 's' : ''} use the same decimal style` });
 
-  return { rows, cols, nCols };
+  return { rows, cols, nCols, exact, excelWidths };
 }
 
 // ---------- layout ----------
@@ -359,7 +390,8 @@ function measureCols(an, s, T) {
     for (const r of an.rows) {
       if (!r.cells || !r.cells[j]) continue;
       const c = r.cells[j];
-      const bold = r.type === 'header';
+      if (c.span > 1) continue; // wide merged cells don't force one column wider
+      const bold = r.type === 'header' || !!c.bold;
       if (c.kind !== 'text' && r.type !== 'header') numW = Math.max(numW, T.width(c.text, nf, s.numBold, 1));
       else {
         const isNumFont = c.kind !== 'text';
@@ -371,7 +403,7 @@ function measureCols(an, s, T) {
     }
     const minW = Math.max(numW, Math.min(wordW, 14), Math.min(textW, col.isNum ? 0 : 4)) + 2 * PAD;
     const want = Math.max(numW, Math.min(textW, 24)) + 2 * PAD;
-    return { minW, want: Math.max(want, minW), isNum: col.isNum };
+    return { minW, want: Math.max(want, minW), isNum: col.isNum, xw: an.excelWidths ? an.excelWidths[j] : null };
   });
 }
 
@@ -380,7 +412,28 @@ function fitSize(meas, idx, W, base) {
   return Math.min(base, W / sum);
 }
 
+// exact mode: keep the column widths from Excel (scaled to the page), only widen too-narrow columns
+function exactWidths(meas, idx, W, size, s) {
+  const min = idx.map(j => meas[j].minW * size);
+  const xw = idx.map(j => Math.max(0.5, meas[j].xw));
+  const tot = xw.reduce((a, b) => a + b, 0);
+  const natural = tot * 5.25 * size / 11; // Excel width at this text size (about 7px per character at 11pt)
+  const target = s.tableWidth === 'fit' ? Math.min(W, Math.max(natural, min.reduce((a, b) => a + b, 0))) : W;
+  let w = xw.map(c => target * c / tot);
+  for (let pass = 0; pass < 6; pass++) {
+    const need = w.reduce((a, x, i) => a + Math.max(0, min[i] - x), 0);
+    if (need <= 0.01) break;
+    const excess = w.map((x, i) => Math.max(0, x - min[i]));
+    const exTot = excess.reduce((a, b) => a + b, 0);
+    w = w.map((x, i) => Math.max(x, min[i]));
+    if (exTot > 0) { const k = Math.min(1, need / exTot); w = w.map((x, i) => x - excess[i] * k); }
+  }
+  const sum = w.reduce((a, b) => a + b, 0);
+  return sum > W ? w.map(x => x * W / sum) : w;
+}
+
 function columnWidths(meas, idx, W, size, s) {
+  if (s.contentMode === 'exact' && idx.every(j => meas[j].xw)) return exactWidths(meas, idx, W, size, s);
   let w = idx.map(j => meas[j].minW * size);
   const want = idx.map(j => meas[j].want * size);
   let extra = W - w.reduce((a, b) => a + b, 0);
@@ -492,19 +545,33 @@ function paginate(plan, s, T, ch) {
     const xs = []; widths.reduce((acc, w, i) => { xs[i] = acc; return acc + w; }, x0);
 
     const rowItem = (r) => {
-      const cells = g.map((j, i) => {
+      const cells = [], bounds = [];
+      const header = r.type === 'header';
+      for (let i = 0; i < g.length;) {
+        const j = g[i];
         const c = r.cells[j];
-        if (!c) return null;
+        if (i > 0) bounds.push(xs[i]);
+        if (!c) { cells.push(null); i++; continue; }
         const isNumFont = c.kind !== 'text';
-        const header = r.type === 'header';
-        const fam = isNumFont && !header ? s.numFont : (isNumFont ? s.numFont : s.textFont);
-        const bold = header || (isNumFont && s.numBold);
-        const align = meas[j].isNum ? (s.numAlign === 'center' ? 'center' : 'right') : (header ? 'left' : 'left');
-        const lines = isNumFont ? [c.text] : T.wrap(c.text, fam, bold, size, widths[i] - 2 * pad);
-        return { lines, fam, bold, align, x: xs[i], w: widths[i] };
-      });
+        const fam = isNumFont ? s.numFont : s.textFont;
+        const bold = header || !!c.bold || (isNumFont && s.numBold);
+        let span = 1;
+        if (c.span > 1) { const end = j + c.span - 1; while (i + span < g.length && g[i + span] > j && g[i + span] <= end) span++; }
+        let w = widths.slice(i, i + span).reduce((a, b) => a + b, 0);
+        // like Excel: long text runs on into the empty cells next to it
+        // (only for a row with one filled cell, so a blank Answer column always stays a box)
+        if (an.exact && !isNumFont && !header && span === 1 && r.filled === 1 && (!c.align || c.align === 'left')) {
+          const need = Math.max(...c.text.split('\n').map(l => T.width(l, fam, bold, size))) + 2 * pad;
+          while (w < need && i + span < g.length && !r.cells[g[i + span]] && g[i + span] > j) { w += widths[i + span]; span++; }
+        }
+        let align = c.align || (meas[j].isNum ? (s.numAlign === 'center' ? 'center' : 'right') : 'left');
+        if (span > 1 && !c.align && an.exact && c.span > 1) align = 'center';
+        const lines = isNumFont ? [c.text] : T.wrap(c.text, fam, bold, size, w - 2 * pad);
+        cells.push({ lines, fam, bold, align, x: xs[i], w });
+        i += span;
+      }
       const n = Math.max(1, ...cells.map(c => (c ? c.lines.length : 1)));
-      return { kind: 'row', header: r.type === 'header', cells, h: n * lineH + 2 * padY, n, widths, xs };
+      return { kind: 'row', header, cells, h: n * lineH + 2 * padY, n, widths, xs, bounds };
     };
 
     if (!page) newPage();
@@ -546,7 +613,7 @@ function paginate(plan, s, T, ch) {
     const lastIsHeading = () => { const o = page.ops[page.ops.length - 1]; return o && (o.kind === 'heading' || o.kind === 'part' || o.kind === 'chapter'); };
     for (let i = 0; i < items.length; i++) {
       const r = items[i];
-      if (r.type === 'spacer') { if (y < fr.top - 1) y -= size * 0.9; closeSeg(); header = null; zebra = 0; blockStart = true; continue; }
+      if (r.type === 'spacer') { if (y < fr.top - 1) y -= an.exact ? lineH + 2 * padY : size * 0.9; closeSeg(); header = null; zebra = 0; blockStart = true; continue; }
       if (r.type === 'heading') {
         const hs = size * 1.2;
         const lines = T.wrap(r.text, s.textFont, true, hs, fr.contentW);
@@ -636,8 +703,8 @@ async function drawPageContent(pdfPage, pg, s, T, C, pageNo, isOdd) {
       const lc = rgb(...C.line), th = 0.6;
       if (!op.header || style !== 'playful') {
         if (s.grid === 'all' || s.grid === 'horizontal') pdfPage.drawLine({ start: { x, y: rowTop - rowH }, end: { x: x + w, y: rowTop - rowH }, thickness: th, color: lc });
-        if (s.grid === 'all') for (let i = 1; i < op.xs.length; i++) {
-          const vx = left + op.xs[i];
+        if (s.grid === 'all') for (const bx of (op.bounds || op.xs.slice(1))) {
+          const vx = left + bx;
           pdfPage.drawLine({ start: { x: vx, y: rowTop }, end: { x: vx, y: rowTop - rowH }, thickness: th, color: lc });
         }
       }

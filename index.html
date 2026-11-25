@@ -214,6 +214,13 @@
       <section class="group" data-open>
         <button class="group__head" aria-expanded="true"><span class="dot" style="--c:var(--coral)"></span>1. Excel file &amp; chapters<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
+          <div class="field"><span class="label">Content</span>
+            <div class="seg" role="radiogroup" aria-label="Content">
+              <label><input type="radio" name="contentMode" value="exact" data-k="contentMode"><span>Same as Excel</span></label>
+              <label><input type="radio" name="contentMode" value="tidy" data-k="contentMode"><span>Tidy up for me</span></label>
+            </div>
+            <small class="hint" id="modeHint"></small>
+          </div>
           <label class="drop drop--small" id="dropSmall">
             <input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
             <svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>
@@ -301,7 +308,7 @@
               <label><input type="radio" name="numAlign" value="center" data-k="numAlign"><span>Centre</span></label>
             </div>
           </div>
-          <div class="row2">
+          <div class="row2 tidy-only">
             <div class="field"><label for="s-decimals">Decimals</label>
               <select id="s-decimals" data-k="decimals"><option value="auto">Auto, same per column</option><option value="0">0 (12)</option><option value="1">1 (12.5)</option><option value="2">2 (12.50)</option><option value="3">3</option></select></div>
             <div class="field"><label for="s-grouping">Big numbers</label>
@@ -325,7 +332,7 @@
             <select id="s-grid" data-k="grid"><option value="all">All lines</option><option value="horizontal">Row lines only</option><option value="outer">Outside border only</option><option value="none">No lines</option></select></div>
           <div class="field"><label for="s-headerMode">Header row</label>
             <select id="s-headerMode" data-k="headerMode"><option value="auto">Find it for me</option><option value="first">First row of each sheet</option><option value="none">No header row</option></select></div>
-          <label class="switch"><input type="checkbox" data-k="headingRows"><span></span>Treat one-cell rows as titles</label>
+          <label class="switch tidy-only"><input type="checkbox" data-k="headingRows"><span></span>Treat one-cell rows as titles</label>
           <label class="switch"><input type="checkbox" data-k="zebra"><span></span>Light stripes on every other row</label>
           <label class="switch"><input type="checkbox" data-k="equalCols"><span></span>Equal width for number columns</label>
           <div class="field"><span class="label">Table width</span>

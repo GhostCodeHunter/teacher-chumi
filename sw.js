@@ -1,5 +1,5 @@
 // ടീച്ചർ.Chumi service worker: works offline once installed or visited.
-const VERSION = 'chumi-v6';
+const VERSION = 'chumi-v7';
 const SHELL = [
   './',
   "./assets/chumi-bird-sm.webp",
@@ -23,6 +23,7 @@ const SHELL = [
   "./index.html",
   "./js/book-engine.js",
   "./js/designs.js",
+  "./js/excel-format.js",
   "./js/install.js",
   "./js/main.js",
   "./js/pdfview.js",

@@ -6,6 +6,8 @@ Upload an `.xlsx` or `.csv` file. Each sheet becomes a chapter. ടീച്ച�
 
 ## Features
 
+- **Same as Excel (default).** Every row, column, blank cell (like an empty Answer column), merged cell and number stays exactly as Excel shows it, with Excel's column widths and bold text. Only margins, padding, fonts and alignment are arranged. Switch to *Tidy up for me* if you want Chumi to clean the sheet too.
+
 - **Excel in, PDF out.** `.xlsx`, `.xlsm` and `.csv` files. Hidden sheets, rows and columns are skipped like in Excel.
 - **Auto tidy.** Empty rows and columns are removed, header rows are found and repeated on each new page, one-cell rows become titles, small tables are kept on one page, and wide tables shrink a little, turn sideways (Auto orientation) or split into even parts.
 - **Same style everywhere.** One text font, one number font, one text size for the whole book. Numbers in a column share the same decimals. Big numbers can use `1,234,567` or Indian `12,34,567` grouping.
