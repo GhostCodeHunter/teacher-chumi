@@ -1,5 +1,5 @@
 // ടീച്ചർ.Chumi service worker: works offline once installed or visited.
-const VERSION = 'chumi-v8';
+const VERSION = 'chumi-v9';
 const SHELL = [
   './',
   "./assets/chumi-bird-sm.webp",

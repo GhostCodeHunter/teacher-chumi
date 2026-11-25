@@ -26,7 +26,7 @@ export const DEFAULTS = {
   runningHeader: false, pageNumbers: 'center', pageNumFormat: 'n',
   design: 'none', coverDesign: 'same', accent: '#F0A04B', accent2: '#5DB8A5', ink: '#2E2A26',
   bgOpacity: 1, bgFit: 'cover',
-  wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2E2A26', wmImageId: null, wmOnTop: false,
+  wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2E2A26', wmImageId: null, wmOnTop: true,
 };
 
 // ---------- colour helpers ----------
@@ -121,6 +121,9 @@ const CANVAS_FAMILY = {
   courier: '"Noto Sans Malayalam","Nirmala UI","Courier New",monospace',
 };
 
+// rendered text pictures are reused between rebuilds (saves time and memory while you change settings)
+const PNG_CACHE = new Map();
+
 class TextEngine {
   constructor(doc, fonts) {
     this.doc = doc; this.fonts = fonts;
@@ -151,7 +154,7 @@ class TextEngine {
       page.drawText(text, { x, y, size, font: f, color: window.PDFLib.rgb(...color), opacity: opts.opacity ?? 1, rotate: opts.rotate });
       return;
     }
-    const img = await this.image(text, family, bold, size, color);
+    const img = await this.image(text, family, bold, size, color, opts.maxPx);
     const w = img.w, h = img.h;
     const dx = -size * 0.08, dy = -size * 0.42;
     if (opts.rotate) {
@@ -159,20 +162,27 @@ class TextEngine {
       page.drawImage(img.ref, { x: x + dx * Math.cos(a) - dy * Math.sin(a), y: y + dx * Math.sin(a) + dy * Math.cos(a), width: w, height: h, rotate: opts.rotate, opacity: opts.opacity ?? 1 });
     } else page.drawImage(img.ref, { x: x + dx, y: y + dy, width: w, height: h, opacity: opts.opacity ?? 1 });
   }
-  async image(text, family, bold, size, color) {
-    const key = [text, family, bold, size.toFixed(2), color.join(',')].join('|');
+  async image(text, family, bold, size, color, maxPx = 2400) {
+    const key = [text, family, bold, size.toFixed(2), color.join(','), maxPx].join('|');
     if (this.imgs.has(key)) return this.imgs.get(key);
-    const scale = 5; // px per pt → sharp print
     const wPt = this.width(text, family, bold, size) + size * 0.16;
     const hPt = size * 1.6;
-    const cv = document.createElement('canvas');
-    cv.width = Math.max(1, Math.ceil(wPt * scale)); cv.height = Math.ceil(hPt * scale);
-    const g = cv.getContext('2d');
-    g.font = this.cssFont(family, bold, size * scale);
-    g.fillStyle = `rgb(${color.map(v => Math.round(v * 255)).join(',')})`;
-    g.textBaseline = 'alphabetic';
-    g.fillText(text, size * 0.08 * scale, (hPt - size * 0.42) * scale);
-    const bytes = await new Promise(res => cv.toBlob(b => b.arrayBuffer().then(res), 'image/png'));
+    // sharp enough to print (up to 5 px per pt), but never a giant picture that slows or crashes the browser
+    const scale = Math.max(1, Math.min(5, maxPx / wPt, 1200 / hPt));
+    let bytes = PNG_CACHE.get(key + '|' + scale.toFixed(3));
+    if (!bytes) {
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.ceil(wPt * scale)); cv.height = Math.max(1, Math.ceil(hPt * scale));
+      const g = cv.getContext('2d');
+      g.font = this.cssFont(family, bold, size * scale);
+      g.fillStyle = `rgb(${color.map(v => Math.round(v * 255)).join(',')})`;
+      g.textBaseline = 'alphabetic';
+      g.fillText(text, size * 0.08 * scale, (hPt - size * 0.42) * scale);
+      bytes = await new Promise((res, rej) => cv.toBlob(b => (b ? b.arrayBuffer().then(res) : rej(new Error('Text picture could not be made'))), 'image/png'));
+      cv.width = 0; cv.height = 0; // free the canvas memory now
+      if (PNG_CACHE.size > 600) PNG_CACHE.delete(PNG_CACHE.keys().next().value);
+      PNG_CACHE.set(key + '|' + scale.toFixed(3), bytes);
+    }
     const ref = await this.doc.embedPng(bytes);
     const out = { ref, w: wPt, h: hPt };
     this.imgs.set(key, out); this.canvasCount++;
@@ -278,6 +288,8 @@ function analyseSheet(sheet, s, report, label) {
           // text-only table: a full first row of short labels is a header
           || (firstTable && nCols >= 2 && r.filled === nCols && allText && !!next && r.cells.every(c => c.text.length <= 40));
       if (isHeader) { r.type = 'header'; headers++; }
+      // a one-cell title row (e.g. "Exercise 1") can sit right above the header
+      else if (exact && r.filled === 1 && !nextHasNum) { continue; }
       firstTable = false;
     }
     segStart = false;
@@ -875,7 +887,7 @@ export async function buildBook(book, settings, images = []) {
       const a = (+s.wmAngle || 0) * Math.PI / 180;
       const x = w / 2 - (tw / 2 * Math.cos(a) - th / 2 * Math.sin(a));
       const y = h / 2 - (tw / 2 * Math.sin(a) + th / 2 * Math.cos(a));
-      await T.draw(p, text, x, y, s.textFont, true, fs, hexToRgb01(s.wmColor), { opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0) });
+      await T.draw(p, text, x, y, s.textFont, true, fs, hexToRgb01(s.wmColor), { opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0), maxPx: 1400 });
     } else if (wmRef) {
       const iw = w * 0.8 * clamp(+s.wmScale, 10, 100) / 100;
       const ih = iw * wmRef.height / wmRef.width;
@@ -1009,21 +1021,26 @@ export async function buildBook(book, settings, images = []) {
 }
 
 // image helper used by the UI: normalise any uploaded picture to png/jpg bytes, max 2600 px
-export async function prepareImage(file) {
+// role 'bg': full-page picture → JPEG (fast, small); role 'wm': logo → PNG with see-through kept, small size
+export async function prepareImage(file, role = 'bg') {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('This picture could not be opened. Try a PNG or JPG file.')); i.src = url; });
-    const max = 2600;
+    const max = role === 'wm' ? 1200 : 2200;
     const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
     const isJpg = /jpe?g/i.test(file.type);
-    if (k === 1 && (isJpg || file.type === 'image/png')) {
-      return { bytes: new Uint8Array(await file.arrayBuffer()), type: isJpg ? 'image/jpeg' : 'image/png', w: img.naturalWidth, h: img.naturalHeight, url: URL.createObjectURL(file) };
+    if (k === 1 && isJpg && file.size < 4e6) {
+      return { bytes: new Uint8Array(await file.arrayBuffer()), type: 'image/jpeg', w: img.naturalWidth, h: img.naturalHeight, url: URL.createObjectURL(file) };
     }
     const cv = document.createElement('canvas');
-    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
-    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-    const type = isJpg ? 'image/jpeg' : 'image/png';
-    const blob = await new Promise(r => cv.toBlob(r, type, 0.92));
-    return { bytes: new Uint8Array(await blob.arrayBuffer()), type, w: cv.width, h: cv.height, url: URL.createObjectURL(blob) };
+    cv.width = Math.max(1, Math.round(img.naturalWidth * k)); cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+    const g = cv.getContext('2d');
+    const type = role === 'wm' ? 'image/png' : 'image/jpeg';
+    if (type === 'image/jpeg') { g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); }
+    g.drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise((r, j) => cv.toBlob(b => (b ? r(b) : j(new Error('This picture is too big. Try a smaller one.'))), type, 0.9));
+    const out = { bytes: new Uint8Array(await blob.arrayBuffer()), type, w: cv.width, h: cv.height, url: URL.createObjectURL(blob) };
+    cv.width = 0; cv.height = 0;
+    return out;
   } finally { URL.revokeObjectURL(url); }
 }

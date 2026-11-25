@@ -9,7 +9,7 @@ import { PICTURES, allDesigns, designName, designOptionsHtml, loadPictures } fro
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const KEY = 'teacherChumi.settings.v4';
+const KEY = 'teacherChumi.settings.v5';
 
 const state = {
   book: null, fileName: '', images: [], pageDesigns: {},
@@ -21,7 +21,8 @@ const state = {
 
 function loadSettings() {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+    let raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!raw) { raw = JSON.parse(localStorage.getItem('teacherChumi.settings.v4') || 'null'); if (raw) raw.wmOnTop = true; }
     if (raw && typeof raw === 'object') {
       const out = { ...DEFAULTS };
       for (const k of Object.keys(DEFAULTS)) if (k in raw && typeof raw[k] === typeof DEFAULTS[k] || (k in raw && (DEFAULTS[k] === null || k === 'baseSize' || k === 'decimals'))) out[k] = raw[k];
@@ -168,7 +169,7 @@ function refreshThumbs() {
 async function addImages(files, role) {
   for (const f of files) {
     try {
-      const img = await prepareImage(f);
+      const img = await prepareImage(f, role);
       const id = 'img:u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const name = f.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'My design';
       state.images.push({ ...img, id, role, name });
