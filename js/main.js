@@ -2,6 +2,7 @@
 import { TEMPLATES } from './templates.js';
 import { DEFAULTS } from './book-engine.js';
 import { drawThumb } from './thumbs.js';
+import { initInstall } from './install.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -253,6 +254,7 @@ function designs() {
 }
 
 /* ---------- start ---------- */
+initInstall((msg) => getStudio().then(m => m.toast(msg)));
 nav();
 designs();
 reveals();

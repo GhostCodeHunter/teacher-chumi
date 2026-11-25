@@ -530,6 +530,14 @@ function init() {
   $$('.mobile-tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
   setTimeout(refreshThumbs, 300);
+
+  // opened by double-clicking an Excel file once the app is installed
+  if ('launchQueue' in window) {
+    window.launchQueue.setConsumer(async (params) => {
+      const h = params.files && params.files[0];
+      if (h) loadFile(await h.getFile());
+    });
+  }
 }
 
 export function enterStudio(params) {

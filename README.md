@@ -50,3 +50,7 @@ lib/                pdf-lib, pdf.js, JSZip (see lib/licenses)
 - [PDF.js](https://mozilla.github.io/pdf.js/) (Apache-2.0) shows the preview.
 - [JSZip](https://stuk.github.io/jszip/) (MIT) reads `.xlsx` files.
 - Fonts: Baloo 2, Baloo Chettan 2 and Nunito from Google Fonts.
+
+## Install on a laptop or PC
+
+Open the site in Chrome or Edge and click **Install app** (top right), or the install icon in the address bar. ടീച്ചർ.Chumi then opens in its own window, works without internet, and can open `.xlsx` files you double-click. On a Mac with Safari, use *File → Add to Dock*.

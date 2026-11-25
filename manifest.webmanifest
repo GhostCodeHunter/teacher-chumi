@@ -1,0 +1,26 @@
+{
+  "name": "ടീച്ചർ.Chumi — Kids' PDF book maker",
+  "short_name": "ടീച്ചർ.Chumi",
+  "description": "Turn Excel sheets into neat, colourful PDF books for kids. Works offline.",
+  "id": "./",
+  "start_url": "./#/studio",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#F4EBE3",
+  "theme_color": "#F0A04B",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "file_handlers": [
+    {
+      "action": "./#/studio",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "text/csv": [".csv"]
+      }
+    }
+  ]
+}
