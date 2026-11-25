@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ടീച്ചർ.Chumi — Excel to kids' PDF books</title>
+  <meta name="description" content="ടീച്ചർ.Chumi turns Excel sheets into neat, colourful PDF books for kids. Auto margins, same fonts for every number, templates, backgrounds and watermarks. Free, runs in your browser.">
+  <meta name="theme-color" content="#FFF8EC">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Baloo+Chettan+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="lib/jszip.min.js" defer></script>
+  <script src="lib/pdf-lib.min.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body class="is-loading">
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-margin" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><path d="M9 4 7 20M17 4l-2 16M4 9h16M3.5 15h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-resize" viewBox="0 0 24 24"><rect x="3" y="7" width="11" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 3h9a2 2 0 0 1 2 2v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.5-1.2-1.6-1.2-3 0-1 .8-2 2.2-2H17a4 4 0 0 0 4-4c0-4-4-7-9-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="11" r="1.4" fill="currentColor"/><circle cx="10" cy="7" r="1.4" fill="currentColor"/><circle cx="15" cy="7.5" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0-5.5-5.5M19 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5m0 0 5.5-5.5M5 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5M12 7.5v.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4M12 17v.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24"><path d="m4 20 11-11m-2-2 2 2M15 3v2M19 7h2M18.5 4.5 17 6M9 4l.5 1.5L11 6l-1.5.5L9 8l-.5-1.5L7 6l1.5-.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="m4 18 5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5Zm0 0v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ LOADER ============ -->
+<div class="loader" id="loader" role="status" aria-live="polite">
+  <div class="loader__inner">
+    <div class="abacus" aria-hidden="true">
+      <div class="abacus__frame">
+        <span class="rod"><i></i><i></i><i></i></span>
+        <span class="rod"><i></i><i></i><i></i></span>
+        <span class="rod"><i></i><i></i><i></i></span>
+        <span class="rod"><i></i><i></i><i></i></span>
+        <span class="rod"><i></i><i></i><i></i></span>
+      </div>
+    </div>
+    <div class="loader__name" aria-label="ടീച്ചർ.Chumi"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="latin" data-split>Chumi</span></div>
+    <div class="loader__bar"><span id="loaderBar"></span></div>
+    <div class="loader__count"><span id="loaderCount">0</span>%</div>
+  </div>
+</div>
+
+<!-- rainbow page transition -->
+<div class="wipe" id="wipe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+<!-- ============ LANDING ============ -->
+<main id="view-home" class="view is-active" data-view="home">
+  <header class="nav" id="nav">
+    <a class="brand" href="#/" aria-label="ടീച്ചർ.Chumi home">
+      <img src="assets/logo.svg" alt="" width="40" height="40">
+      <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
+    </a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#templates">Templates</a>
+    </nav>
+    <a class="btn btn--primary btn--sm" href="#/studio" data-go="studio"><span>Open Studio</span><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </header>
+
+  <section class="hero">
+    <div class="hero__copy">
+      <p class="chip reveal"><svg class="ico" aria-hidden="true"><use href="#i-star"/></svg> For teachers who make kids' books</p>
+      <h1 class="hero__title reveal">
+        Excel sheets in.<br>
+        <span class="squiggle">Happy books<svg viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16 C 40 4, 70 22, 110 12 S 180 4, 220 14 S 280 20, 296 8"/></svg></span> out.
+      </h1>
+      <p class="hero__lead reveal">Upload your worksheet file. ടീച്ചർ.Chumi lines up every margin, every number and every page, then gives you a print-ready PDF. Pick a fun design, add your background or a watermark, and download.</p>
+      <div class="hero__cta reveal">
+        <a class="btn btn--primary btn--lg magnetic" href="#/studio" data-go="studio"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span>Make my book</span></a>
+        <a class="btn btn--ghost btn--lg" href="#/studio?sample=1" data-go="studio" data-sample="1"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span>Try a sample book</span></a>
+      </div>
+      <ul class="hero__trust reveal">
+        <li><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Files stay on your computer</li>
+        <li><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> Free, no sign up</li>
+      </ul>
+    </div>
+
+    <div class="hero__art" aria-hidden="true">
+      <div class="float f1">+</div><div class="float f2">7</div><div class="float f3">÷</div><div class="float f4">3</div><div class="float f5">×</div>
+      <span class="bead b1"></span><span class="bead b2"></span><span class="bead b3"></span>
+      <div class="sheet-card" data-depth="0.4">
+        <div class="sheet-card__bar"><i></i><i></i><i></i><span>worksheet.xlsx</span></div>
+        <div class="grid">
+          <span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span>
+          <span>4</span><span>8</span><span>2</span><span>6</span>
+          <span>+3</span><span>-5</span><span>+7</span><span>+1</span>
+          <span>-2</span><span>+4</span><span>-6</span><span>-3</span>
+          <span>___</span><span>___</span><span>___</span><span>___</span>
+        </div>
+      </div>
+      <div class="magic"><svg class="ico" aria-hidden="true"><use href="#i-wand"/></svg></div>
+      <div class="book" data-depth="0.8">
+        <div class="book__page book__page--l">
+          <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="pill">Exercise 1</div>
+          <div class="mini">
+            <b>Q1</b><b>Q2</b><b>Q3</b>
+            <span>4</span><span>8</span><span>2</span>
+            <span>+3</span><span>-5</span><span>+7</span>
+            <span>-2</span><span>+4</span><span>-6</span>
+          </div>
+          <div class="pnum">1</div>
+        </div>
+        <div class="book__page book__page--r">
+          <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="pill pill--b">Times Tables</div>
+          <div class="mini mini--4">
+            <b>×</b><b>2</b><b>3</b><b>4</b>
+            <span>1</span><span>2</span><span>3</span><span>4</span>
+            <span>2</span><span>4</span><span>6</span><span>8</span>
+            <span>3</span><span>6</span><span>9</span><span>12</span>
+          </div>
+          <div class="pnum">2</div>
+        </div>
+        <div class="book__spine"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
+
+  <section class="section" id="features">
+    <div class="section__head reveal">
+      <p class="kicker">What it does for you</p>
+      <h2>Less fixing. More teaching.</h2>
+      <p>Every page gets checked and tidied the same way, so your book looks neat from the first page to the last.</p>
+    </div>
+    <div class="cards">
+      <article class="card tilt reveal" style="--c:var(--coral)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-margin"/></svg></div>
+        <h3>Margins set for you</h3>
+        <p>Each page gets the same margins and padding. Wide tables shrink a little or turn sideways, so nothing gets cut.</p>
+      </article>
+      <article class="card tilt reveal" style="--c:var(--sun)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-hash"/></svg></div>
+        <h3>Every number looks the same</h3>
+        <p>One font and one size for all numbers. Decimals line up and number columns get equal width.</p>
+      </article>
+      <article class="card tilt reveal" style="--c:var(--mint)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg></div>
+        <h3>See each page first</h3>
+        <p>Your book shows up as real PDF pages. Look through them, change things, then download when it looks right.</p>
+      </article>
+      <article class="card tilt reveal" style="--c:var(--sky)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-resize"/></svg></div>
+        <h3>Any page size</h3>
+        <p>A4 to start. Switch to A5, A3, B5, Letter, Legal, square or your own size in a click.</p>
+      </article>
+      <article class="card tilt reveal" style="--c:var(--grape)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg></div>
+        <h3>Fun designs for kids</h3>
+        <p>Rainbows, balloons, stars, clouds and crayon borders. Or upload your own background and add a watermark.</p>
+      </article>
+      <article class="card tilt reveal" style="--c:var(--coral)">
+        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg></div>
+        <h3>Private and free</h3>
+        <p>Your Excel file never leaves your computer. The whole book is made right here in your browser.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="how">
+    <div class="section__head reveal">
+      <p class="kicker">Four easy steps</p>
+      <h2>From sheet to book in a minute</h2>
+    </div>
+    <ol class="steps">
+      <li class="step reveal" style="--c:var(--coral)"><span class="step__n">1</span><h3>Upload Excel</h3><p>Drop your .xlsx or .csv file. Each sheet becomes a chapter.</p></li>
+      <li class="step reveal" style="--c:var(--sun)"><span class="step__n">2</span><h3>Auto tidy</h3><p>Pages, margins, fonts and numbers get lined up for you.</p></li>
+      <li class="step reveal" style="--c:var(--mint)"><span class="step__n">3</span><h3>Pick a design</h3><p>Choose a template, page size, background or watermark.</p></li>
+      <li class="step reveal" style="--c:var(--sky)"><span class="step__n">4</span><h3>Check and download</h3><p>Look at every page, confirm, and save your PDF book.</p></li>
+    </ol>
+  </section>
+
+  <section class="section" id="templates">
+    <div class="section__head reveal">
+      <p class="kicker">Templates</p>
+      <h2>Pick a look your kids will love</h2>
+      <p>Tap a design to start your book with it. You can change it any time.</p>
+    </div>
+    <div class="tpl-gallery" id="tplGallery"></div>
+  </section>
+
+  <section class="cta reveal">
+    <div class="cta__box">
+      <h2>Ready to make your book?</h2>
+      <p>It takes one Excel file and about a minute.</p>
+      <a class="btn btn--light btn--lg magnetic" href="#/studio" data-go="studio" data-confetti><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>Start my book</span></a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
+    <span>Made with love for teachers and little learners.</span>
+  </footer>
+</main>
+
+<!-- ============ STUDIO ============ -->
+<main id="view-studio" class="view" data-view="studio" hidden>
+  <header class="topbar">
+    <a class="icon-btn" href="#/" data-go="home" aria-label="Back to home" title="Back to home"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></a>
+    <a class="brand brand--sm" href="#/" data-go="home" aria-label="ടീച്ചർ.Chumi home">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
+    </a>
+    <span class="file-chip" id="fileChip" hidden><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span id="fileName"></span></span>
+    <span class="status" id="status" aria-live="polite"></span>
+    <button class="btn btn--primary btn--sm" id="downloadBtn" disabled><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Download PDF</span></button>
+  </header>
+
+  <div class="studio">
+    <aside class="panel" id="panel" aria-label="Book settings">
+      <!-- File -->
+      <section class="group" data-open>
+        <button class="group__head" aria-expanded="true"><span class="dot" style="--c:var(--coral)"></span>1. Excel file &amp; chapters<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <label class="drop drop--small" id="dropSmall">
+            <input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
+            <svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>
+            <span><b>Choose Excel file</b><small>.xlsx or .csv, or drop it here</small></span>
+          </label>
+          <button class="link-btn" id="sampleBtn2" type="button">Use the sample book instead</button>
+          <div id="chapterList" class="chapters" aria-label="Chapters"></div>
+        </div>
+      </section>
+
+      <!-- Book details -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sun)"></span>2. Book details<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="field"><label for="s-title">Book title</label><input id="s-title" data-k="title" type="text" maxlength="120"></div>
+          <div class="field"><label for="s-subtitle">Subtitle</label><input id="s-subtitle" data-k="subtitle" type="text" maxlength="160"></div>
+          <div class="field"><label for="s-author">Teacher / author</label><input id="s-author" data-k="author" type="text" maxlength="120"></div>
+          <div class="field"><label for="s-institution">School or academy</label><input id="s-institution" data-k="institution" type="text" maxlength="160"></div>
+          <div class="row2">
+            <label class="switch"><input type="checkbox" data-k="cover"><span></span>Cover page</label>
+            <label class="switch"><input type="checkbox" data-k="toc"><span></span>Contents page</label>
+          </div>
+          <label class="switch"><input type="checkbox" data-k="chapterTitles"><span></span>Show sheet name as chapter title</label>
+        </div>
+      </section>
+
+      <!-- Page -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--mint)"></span>3. Page size &amp; margins<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="field"><label for="s-pageSize">Page size</label>
+            <select id="s-pageSize" data-k="pageSize">
+              <option value="A4">A4 (210 × 297 mm)</option><option value="A5">A5 (148 × 210 mm)</option>
+              <option value="A3">A3 (297 × 420 mm)</option><option value="B5">B5 (176 × 250 mm)</option>
+              <option value="Letter">Letter (8.5 × 11 in)</option><option value="Legal">Legal (8.5 × 14 in)</option>
+              <option value="Square">Square (210 × 210 mm)</option><option value="Custom">Custom size…</option>
+            </select>
+          </div>
+          <div class="row2" id="customSize" hidden>
+            <div class="field"><label for="s-customW">Width (mm)</label><input id="s-customW" data-k="customW" type="number" min="50" max="1000" step="1"></div>
+            <div class="field"><label for="s-customH">Height (mm)</label><input id="s-customH" data-k="customH" type="number" min="50" max="1000" step="1"></div>
+          </div>
+          <div class="field"><span class="label">Orientation</span>
+            <div class="seg" role="radiogroup" aria-label="Orientation">
+              <label><input type="radio" name="orientation" value="portrait" data-k="orientation"><span>Portrait</span></label>
+              <label><input type="radio" name="orientation" value="landscape" data-k="orientation"><span>Landscape</span></label>
+              <label><input type="radio" name="orientation" value="auto" data-k="orientation"><span>Auto</span></label>
+            </div>
+            <small class="hint">Auto turns only very wide tables sideways.</small>
+          </div>
+          <div class="field"><label for="s-margin">Margins</label>
+            <select id="s-margin" data-k="margin">
+              <option value="auto">Auto (best for this page size)</option><option value="narrow">Narrow</option>
+              <option value="normal">Normal</option><option value="wide">Wide</option><option value="custom">Custom…</option>
+            </select>
+          </div>
+          <div class="field" id="customMargin" hidden><label for="s-marginMM">Margin (mm)</label><input id="s-marginMM" data-k="marginMM" type="number" min="5" max="60" step="1"></div>
+          <label class="switch"><input type="checkbox" data-k="mirror"><span></span>Mirror margins for binding (book printing)</label>
+        </div>
+      </section>
+
+      <!-- Text & numbers -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>4. Text &amp; numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="row2">
+            <div class="field"><label for="s-textFont">Text font</label>
+              <select id="s-textFont" data-k="textFont"><option value="helvetica">Round sans</option><option value="times">Classic serif</option><option value="courier">Typewriter</option></select></div>
+            <div class="field"><label for="s-numFont">Number font</label>
+              <select id="s-numFont" data-k="numFont"><option value="helvetica">Round sans</option><option value="times">Classic serif</option><option value="courier">Typewriter</option></select></div>
+          </div>
+          <label class="switch"><input type="checkbox" data-k="numBold"><span></span>Bold numbers (easier for kids)</label>
+          <div class="field"><label for="s-baseSize">Text size</label>
+            <select id="s-baseSize" data-k="baseSize">
+              <option value="auto">Auto (fits the page)</option>
+              <option value="10">10 pt</option><option value="11">11 pt</option><option value="12">12 pt</option><option value="13">13 pt</option>
+              <option value="14">14 pt</option><option value="16">16 pt</option><option value="18">18 pt</option><option value="20">20 pt (big)</option>
+            </select>
+          </div>
+          <label class="switch"><input type="checkbox" data-k="uniformSize"><span></span>Same text size on every page</label>
+          <div class="field"><span class="label">Number alignment</span>
+            <div class="seg" role="radiogroup" aria-label="Number alignment">
+              <label><input type="radio" name="numAlign" value="right" data-k="numAlign"><span>Right (place value)</span></label>
+              <label><input type="radio" name="numAlign" value="center" data-k="numAlign"><span>Centre</span></label>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="s-decimals">Decimals</label>
+              <select id="s-decimals" data-k="decimals"><option value="auto">Auto, same per column</option><option value="0">0 (12)</option><option value="1">1 (12.5)</option><option value="2">2 (12.50)</option><option value="3">3</option></select></div>
+            <div class="field"><label for="s-grouping">Big numbers</label>
+              <select id="s-grouping" data-k="grouping"><option value="none">1234567</option><option value="intl">1,234,567</option><option value="indian">12,34,567</option></select></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tables -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--grape)"></span>5. Tables<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="field"><span class="label">Table style</span>
+            <div class="seg" role="radiogroup" aria-label="Table style">
+              <label><input type="radio" name="tableStyle" value="playful" data-k="tableStyle"><span>Playful</span></label>
+              <label><input type="radio" name="tableStyle" value="classic" data-k="tableStyle"><span>Classic</span></label>
+              <label><input type="radio" name="tableStyle" value="minimal" data-k="tableStyle"><span>Minimal</span></label>
+            </div>
+          </div>
+          <div class="field"><label for="s-grid">Lines</label>
+            <select id="s-grid" data-k="grid"><option value="all">All lines</option><option value="horizontal">Row lines only</option><option value="outer">Outside border only</option><option value="none">No lines</option></select></div>
+          <div class="field"><label for="s-headerMode">Header row</label>
+            <select id="s-headerMode" data-k="headerMode"><option value="auto">Find it for me</option><option value="first">First row of each sheet</option><option value="none">No header row</option></select></div>
+          <label class="switch"><input type="checkbox" data-k="headingRows"><span></span>Treat one-cell rows as titles</label>
+          <label class="switch"><input type="checkbox" data-k="zebra"><span></span>Light stripes on every other row</label>
+          <label class="switch"><input type="checkbox" data-k="equalCols"><span></span>Equal width for number columns</label>
+          <div class="field"><span class="label">Table width</span>
+            <div class="seg" role="radiogroup" aria-label="Table width">
+              <label><input type="radio" name="tableWidth" value="full" data-k="tableWidth"><span>Full page width</span></label>
+              <label><input type="radio" name="tableWidth" value="fit" data-k="tableWidth"><span>Fit content</span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Design -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--coral)"></span>6. Design template<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="tpl-pick" id="tplPick" role="radiogroup" aria-label="Template"></div>
+          <div class="row3">
+            <div class="field"><label for="s-accent">Main colour</label><input id="s-accent" data-k="accent" type="color"></div>
+            <div class="field"><label for="s-accent2">Second colour</label><input id="s-accent2" data-k="accent2" type="color"></div>
+            <div class="field"><label for="s-ink">Text colour</label><input id="s-ink" data-k="ink" type="color"></div>
+          </div>
+          <div class="swatches" id="swatches" aria-label="Colour sets"></div>
+        </div>
+      </section>
+
+      <!-- Background -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sun)"></span>7. Background design<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <label class="drop drop--small">
+            <input type="file" id="bgInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="vh">
+            <svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>
+            <span><b>Upload background designs</b><small>PNG or JPG, full page size works best</small></span>
+          </label>
+          <div class="img-list" id="bgList"></div>
+          <div class="row2">
+            <div class="field"><label for="s-bgScope">Use on</label>
+              <select id="s-bgScope" data-k="bgScope"><option value="all">All pages</option><option value="cover">Cover only</option><option value="content">Inside pages only</option></select></div>
+            <div class="field"><label for="s-bgFit">Fit</label>
+              <select id="s-bgFit" data-k="bgFit"><option value="cover">Fill page</option><option value="contain">Show whole picture</option><option value="stretch">Stretch</option></select></div>
+          </div>
+          <div class="field"><label for="s-bgOpacity">Strength <output id="o-bgOpacity"></output></label><input id="s-bgOpacity" data-k="bgOpacity" type="range" min="0.1" max="1" step="0.05"></div>
+        </div>
+      </section>
+
+      <!-- Watermark -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--mint)"></span>8. Watermark<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <div class="seg" role="radiogroup" aria-label="Watermark type">
+            <label><input type="radio" name="wmType" value="none" data-k="wmType"><span>None</span></label>
+            <label><input type="radio" name="wmType" value="text" data-k="wmType"><span>Text</span></label>
+            <label><input type="radio" name="wmType" value="image" data-k="wmType"><span>Logo</span></label>
+          </div>
+          <div class="wm-text">
+            <div class="field"><label for="s-wmText">Watermark text</label><input id="s-wmText" data-k="wmText" type="text" maxlength="60"></div>
+            <div class="field"><label for="s-wmColor">Colour</label><input id="s-wmColor" data-k="wmColor" type="color"></div>
+          </div>
+          <div class="wm-image">
+            <label class="drop drop--small">
+              <input type="file" id="wmInput" accept="image/png,image/jpeg,image/webp" class="vh">
+              <svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>
+              <span><b>Upload logo</b><small>PNG with see-through background works best</small></span>
+            </label>
+            <div class="img-list" id="wmList"></div>
+          </div>
+          <div class="field"><label for="s-wmOpacity">Strength <output id="o-wmOpacity"></output></label><input id="s-wmOpacity" data-k="wmOpacity" type="range" min="0.03" max="0.6" step="0.01"></div>
+          <div class="field"><label for="s-wmScale">Size <output id="o-wmScale"></output></label><input id="s-wmScale" data-k="wmScale" type="range" min="15" max="100" step="1"></div>
+          <div class="field"><label for="s-wmAngle">Angle <output id="o-wmAngle"></output></label><input id="s-wmAngle" data-k="wmAngle" type="range" min="-90" max="90" step="5"></div>
+          <label class="switch"><input type="checkbox" data-k="wmOnTop"><span></span>Put watermark over the content</label>
+        </div>
+      </section>
+
+      <!-- Header/footer -->
+      <section class="group">
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>9. Header &amp; page numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <div class="group__body">
+          <label class="switch"><input type="checkbox" data-k="runningHeader"><span></span>Book and chapter name at the top</label>
+          <div class="row2">
+            <div class="field"><label for="s-pageNumbers">Page number</label>
+              <select id="s-pageNumbers" data-k="pageNumbers"><option value="center">Bottom centre</option><option value="right">Bottom right</option><option value="outer">Outside corner</option><option value="none">No numbers</option></select></div>
+            <div class="field"><label for="s-pageNumFormat">Style</label>
+              <select id="s-pageNumFormat" data-k="pageNumFormat"><option value="n">7</option><option value="page-n">Page 7</option><option value="n-of-total">7 / 24</option></select></div>
+          </div>
+        </div>
+      </section>
+
+      <button class="link-btn link-btn--muted" id="resetBtn" type="button">Reset all settings</button>
+    </aside>
+
+    <section class="preview" aria-label="Book preview">
+      <div class="empty" id="empty">
+        <label class="drop drop--big" id="dropBig">
+          <input type="file" id="fileInputBig" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
+          <div class="drop__art" aria-hidden="true"><span></span><span></span><span></span></div>
+          <h2>Drop your Excel file here</h2>
+          <p>Each sheet becomes a chapter. Your file stays on this computer.</p>
+          <span class="btn btn--primary btn--lg"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span>Choose Excel file</span></span>
+        </label>
+        <div class="error" id="emptyError" role="alert" hidden></div>
+        <button class="btn btn--ghost" id="sampleBtn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span>Try the sample book</span></button>
+      </div>
+
+      <div class="viewer" id="viewer" hidden>
+        <div class="viewer__bar">
+          <span class="pageinfo" id="pageInfo">–</span>
+          <div class="zoom" role="group" aria-label="Zoom">
+            <button class="icon-btn" id="zoomOut" aria-label="Zoom out" title="Zoom out"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button class="zoom__val" id="zoomFit" title="Fit to width">Fit</button>
+            <button class="icon-btn" id="zoomIn" aria-label="Zoom in" title="Zoom in"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
+        <details class="report" id="report">
+          <summary><svg class="ico" aria-hidden="true"><use href="#i-wand"/></svg><span id="reportTitle">Auto-check</span></summary>
+          <ul id="reportList"></ul>
+        </details>
+        <div class="error" id="errorBox" role="alert" hidden></div>
+        <div class="pages" id="pages"></div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="mobile-tabs" aria-label="Studio view">
+    <button data-tab="panel" class="is-on" aria-pressed="true">Settings</button>
+    <button data-tab="preview" aria-pressed="false">Preview</button>
+  </nav>
+</main>
+
+<!-- confirm dialog -->
+<dialog class="modal" id="confirm" aria-labelledby="confirmTitle">
+  <form method="dialog" class="modal__box">
+    <div class="modal__art" aria-hidden="true"><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg></div>
+    <h2 id="confirmTitle">Your book is ready</h2>
+    <p id="confirmText"></p>
+    <label class="check"><input type="checkbox" id="confirmCheck"><span>I looked at the pages and they look right</span></label>
+    <div class="modal__actions">
+      <button class="btn btn--ghost" value="cancel">Keep editing</button>
+      <button class="btn btn--primary" id="confirmGo" value="ok" disabled><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Download PDF</span></button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:2rem;text-align:center">Please turn on JavaScript to use ടീച്ചർ.Chumi.</p></noscript>
+</body>
+</html>
