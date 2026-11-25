@@ -8,7 +8,7 @@ import { sampleBook } from './sample.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const KEY = 'teacherChumi.settings.v1';
+const KEY = 'teacherChumi.settings.v2';
 
 const state = {
   book: null, fileName: '', images: [],
@@ -107,8 +107,8 @@ function accordions() {
 
 /* ---------- templates + colours ---------- */
 const SWATCHES = [
-  ['Rainbow', '#FF6B6B', '#4D96FF'], ['Sunny', '#FFB703', '#9B5DE5'], ['Minty', '#06D6A0', '#FF6B6B'],
-  ['Ocean', '#4D96FF', '#06D6A0'], ['Berry', '#9B5DE5', '#FF6B6B'], ['Calm', '#E07A5F', '#3D5A80'],
+  ['Orange', '#F0A04B', '#5DB8A5'], ['Coral', '#EC6A73', '#5B8FE0'], ['Mint', '#5DB8A5', '#F0A04B'],
+  ['Sky', '#5B8FE0', '#F6C24C'], ['Grape', '#9273CF', '#EC6A73'], ['Calm', '#C9A27E', '#7A9E9F'],
 ];
 function buildPickers() {
   const pick = $('#tplPick');

@@ -10,7 +10,7 @@ export const PAGE_SIZES = {
   Letter: [215.9, 279.4], Legal: [215.9, 355.6], Square: [210, 210],
 };
 
-export const KID_PALETTE = ['#FF6B6B', '#FFB703', '#06D6A0', '#4D96FF', '#9B5DE5'];
+export const KID_PALETTE = ['#EC6A73', '#F0A04B', '#5DB8A5', '#5B8FE0', '#9273CF'];
 
 export const DEFAULTS = {
   title: 'My Maths Book', subtitle: 'Practice Workbook', author: '', institution: '',
@@ -24,9 +24,9 @@ export const DEFAULTS = {
   tableStyle: 'playful', zebra: true, grid: 'all', tableWidth: 'full', equalCols: true,
   chapterTitles: true,
   runningHeader: true, pageNumbers: 'center', pageNumFormat: 'n',
-  template: 'rainbow', accent: '#FF6B6B', accent2: '#4D96FF', ink: '#2B2D42',
+  template: 'rainbow', accent: '#F0A04B', accent2: '#5DB8A5', ink: '#2E2A26',
   bgId: null, bgScope: 'all', bgOpacity: 1, bgFit: 'cover',
-  wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2B2D42', wmImageId: null, wmOnTop: false,
+  wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2E2A26', wmImageId: null, wmOnTop: false,
 };
 
 // ---------- colour helpers ----------
@@ -657,7 +657,7 @@ function tplColours(C, rgb) {
     accent: rgb(...C.accent), accent2: rgb(...C.accent2), ink: rgb(...C.ink), white: rgb(1, 1, 1),
     soft: rgb(...C.accentSoft), rule: rgb(0.55, 0.7, 0.92), paper: rgb(1, 1, 1),
     pal: C.pal.map(p => rgb(...p)),
-    sky: rgb(...hexToRgb01('#4D96FF')), mint: rgb(...hexToRgb01('#06D6A0')), sun: rgb(...hexToRgb01('#FFB703')),
+    sky: rgb(...hexToRgb01('#5B8FE0')), mint: rgb(...hexToRgb01('#5DB8A5')), sun: rgb(...hexToRgb01('#F6C24C')),
   };
 }
 

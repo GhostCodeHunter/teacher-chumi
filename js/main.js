@@ -1,4 +1,4 @@
-// ടീച്ചർ.Chumi — loader, page transitions, landing animations, router
+// ടീച്ചർ.Chumi — loader, page transitions, scroll story, landing motion, router
 import { TEMPLATES } from './templates.js';
 import { DEFAULTS } from './book-engine.js';
 import { drawThumb } from './thumbs.js';
@@ -7,6 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
 /* ---------- loader ---------- */
 function splitLetters() {
@@ -16,43 +17,40 @@ function splitLetters() {
     [...t].forEach((ch, i) => {
       const s = document.createElement('span');
       s.textContent = ch;
-      s.style.animationDelay = `${0.45 + i * 0.07}s`;
+      s.style.animationDelay = `${0.4 + i * 0.07}s`;
       el.appendChild(s);
     });
   });
 }
 
 async function runLoader() {
-  const bar = $('#loaderBar'), count = $('#loaderCount'), loader = $('#loader');
+  const beads = $$('#loaderBeads i'), count = $('#loaderCount'), loader = $('#loader');
   splitLetters();
-  let shown = 0, target = 0;
+  let shown = 0;
   const start = performance.now();
-  const ready = Promise.all([
+  let done = false;
+  Promise.all([
     new Promise(r => (document.readyState === 'complete' ? r() : window.addEventListener('load', r, { once: true }))),
     Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(2500)]),
-  ]);
-  let done = false;
-  ready.then(() => { done = true; });
+  ]).then(() => { done = true; });
   setTimeout(() => { done = true; }, 8000); // never keep people waiting on a slow network
   await new Promise(resolve => {
     const tick = () => {
       const t = performance.now() - start;
-      target = done ? 100 : Math.min(92, 20 + t / 25);
-      shown += (target - shown) * 0.12 + (done ? 1.2 : 0);
-      shown = Math.min(shown, target);
-      bar.style.width = shown + '%';
+      const target = done ? 100 : Math.min(90, 15 + t / 28);
+      shown = Math.min(target, shown + (target - shown) * 0.1 + (done ? 1.5 : 0.2));
       count.textContent = Math.round(shown);
-      if (done && shown >= 99.5 && t > (reduce ? 200 : 1500)) { count.textContent = '100'; bar.style.width = '100%'; resolve(); }
+      beads.forEach((b, i) => b.classList.toggle('on', shown >= (i + 1) * 10 - 0.5));
+      if (done && shown >= 99.5 && t > (reduce ? 150 : 1400)) { count.textContent = '100'; resolve(); }
       else requestAnimationFrame(tick);
     };
     tick();
   });
   loader.classList.add('is-done');
   document.body.classList.remove('is-loading');
-  await wait(reduce ? 0 : 350);
+  await wait(reduce ? 0 : 300);
   document.body.classList.add('is-ready');
-  loader.addEventListener('animationend', () => loader.remove(), { once: true });
-  setTimeout(() => loader.isConnected && loader.remove(), 1500);
+  setTimeout(() => loader.isConnected && loader.remove(), 1200);
 }
 
 /* ---------- transitions + router ---------- */
@@ -70,16 +68,21 @@ function parseHash() {
   return { view: path === 'studio' ? 'studio' : 'home', params: new URLSearchParams(q || '') };
 }
 
+let lastClick = null;
 async function wipe(swap) {
   const w = $('#wipe');
   if (reduce) { await swap(); return; }
+  w.style.setProperty('--x', lastClick ? lastClick[0] + 'px' : '50%');
+  w.style.setProperty('--y', lastClick ? lastClick[1] + 'px' : '50%');
+  lastClick = null;
   w.classList.remove('is-out'); void w.offsetWidth;
   w.classList.add('is-in');
-  await wait(680);
+  await wait(620);
   await swap();
+  await wait(120);
   w.classList.remove('is-in'); void w.offsetWidth;
   w.classList.add('is-out');
-  await wait(750);
+  await wait(600);
   w.classList.remove('is-out');
 }
 
@@ -99,6 +102,7 @@ async function route(first = false) {
     window.scrollTo({ top: 0, behavior: 'instant' });
     document.title = view === 'studio' ? 'Studio · ടീച്ചർ.Chumi' : 'ടീച്ചർ.Chumi — Excel to kids\' PDF books';
     if (view === 'studio') (await getStudio()).enterStudio(params);
+    else requestAnimationFrame(onScroll);
   };
   current = view;
   if (first) await show(); else await wipe(show);
@@ -109,6 +113,7 @@ function goLinks() {
     const a = e.target.closest('[data-go]');
     if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
+    lastClick = [e.clientX, e.clientY];
     const href = a.getAttribute('href') || (a.dataset.go === 'studio' ? '#/studio' : '#/');
     if (a.hasAttribute('data-confetti')) confetti(a);
     if (location.hash === href) route(); else location.hash = href;
@@ -117,22 +122,22 @@ function goLinks() {
 }
 
 /* ---------- fun bits ---------- */
-const COLORS = ['#FF6B6B', '#FFB703', '#06D6A0', '#4D96FF', '#9B5DE5'];
+const COLORS = ['#EC6A73', '#F0A04B', '#5DB8A5', '#5B8FE0', '#9273CF', '#F6C24C'];
 export function confetti(el) {
-  if (reduce) return;
+  if (reduce || !el) return;
   const r = el.getBoundingClientRect();
-  for (let i = 0; i < 36; i++) {
+  for (let i = 0; i < 32; i++) {
     const d = document.createElement('i');
     d.className = 'confetti';
     d.style.background = COLORS[i % COLORS.length];
     d.style.left = r.left + r.width / 2 + 'px';
     d.style.top = r.top + r.height / 2 + 'px';
     document.body.appendChild(d);
-    const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 220;
+    const a = Math.random() * Math.PI * 2, v = 110 + Math.random() * 200;
     d.animate([
       { transform: 'translate(0,0) rotate(0)', opacity: 1 },
-      { transform: `translate(${Math.cos(a) * v}px, ${Math.sin(a) * v - 120}px) rotate(${Math.random() * 720}deg)`, opacity: 1, offset: 0.6 },
-      { transform: `translate(${Math.cos(a) * v * 1.2}px, ${Math.sin(a) * v + 160}px) rotate(${Math.random() * 900}deg)`, opacity: 0 },
+      { transform: `translate(${Math.cos(a) * v}px, ${Math.sin(a) * v - 110}px) rotate(${Math.random() * 720}deg)`, opacity: 1, offset: 0.6 },
+      { transform: `translate(${Math.cos(a) * v * 1.2}px, ${Math.sin(a) * v + 150}px) rotate(${Math.random() * 900}deg)`, opacity: 0 },
     ], { duration: 1100 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => d.remove();
   }
 }
@@ -153,51 +158,61 @@ function buttons() {
   $$('.magnetic').forEach(b => {
     b.addEventListener('pointermove', (e) => {
       const r = b.getBoundingClientRect();
-      b.style.translate = `${(e.clientX - r.left - r.width / 2) * 0.18}px ${(e.clientY - r.top - r.height / 2) * 0.25}px`;
+      b.style.translate = `${(e.clientX - r.left - r.width / 2) * 0.15}px ${(e.clientY - r.top - r.height / 2) * 0.22}px`;
     });
     b.addEventListener('pointerleave', () => { b.style.translate = ''; });
   });
-  $$('.tilt').forEach(c => {
-    c.addEventListener('pointermove', (e) => {
-      const r = c.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-      c.style.transform = `perspective(700px) rotateX(${(0.5 - y) * 9}deg) rotateY(${(x - 0.5) * 11}deg) translateY(-6px)`;
-      c.style.setProperty('--mx', x * 100 + '%'); c.style.setProperty('--my', y * 100 + '%');
-    });
-    c.addEventListener('pointerleave', () => { c.style.transform = ''; });
-  });
   const art = $('.hero__art');
-  if (art) {
-    $('.hero').addEventListener('pointermove', (e) => {
-      const x = e.clientX / innerWidth - 0.5, y = e.clientY / innerHeight - 0.5;
-      $$('[data-depth]', art).forEach(el => { el.style.translate = `${x * 30 * el.dataset.depth}px ${y * 24 * el.dataset.depth}px`; });
-      $$('.float', art).forEach((el, i) => { el.style.marginLeft = `${x * (10 + i * 6)}px`; el.style.marginTop = `${y * (10 + i * 5)}px`; });
-    });
-  }
+  $('.hero').addEventListener('pointermove', (e) => {
+    const x = e.clientX / innerWidth - 0.5, y = e.clientY / innerHeight - 0.5;
+    $$('[data-depth]', art).forEach(el => { el.style.translate = `${x * 18 * el.dataset.depth}px ${y * 14 * el.dataset.depth}px`; });
+  });
 }
 
+/* ---------- reveal on scroll ---------- */
 function reveals() {
-  const groups = new Map();
-  $$('.reveal').forEach(el => {
-    const p = el.parentElement;
-    const i = groups.get(p) || 0; groups.set(p, i + 1);
-    el.style.setProperty('--d', `${Math.min(i, 6) * 0.09}s`);
+  $$('[data-stagger]').forEach(group => {
+    $$('[data-reveal]', group).forEach((el, i) => el.style.setProperty('--d', `${(i % 3) * 0.1 + Math.floor(i / 3) * 0.08}s`));
   });
-  if (!('IntersectionObserver' in window)) { $$('.reveal').forEach(el => el.classList.add('is-in')); return; }
+  if (!('IntersectionObserver' in window)) { $$('[data-reveal]').forEach(el => el.classList.add('is-in')); return; }
   const io = new IntersectionObserver((entries) => {
     entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } });
-  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-  $$('.reveal, .steps').forEach(el => io.observe(el));
-  // hero shows straight after the loader
-  const hero = () => $$('.hero .reveal').forEach(el => el.classList.add('is-in'));
-  if (document.body.classList.contains('is-ready')) hero();
-  else new MutationObserver((m, ob) => { if (document.body.classList.contains('is-ready')) { hero(); ob.disconnect(); } }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }, { threshold: 0.15, rootMargin: '0px 0px -10% 0px' });
+  $$('[data-reveal]').forEach(el => io.observe(el));
 }
 
-function ticker() {
-  const facts = ['2 + 3 = 5', '7 × 8 = 56', '12 − 4 = 8', '9 + 9 = 18', '6 × 7 = 42', '20 ÷ 4 = 5', '15 + 27 = 42', '100 − 1 = 99', '3 × 9 = 27', '1 + 1 = 2'];
-  const html = facts.map(f => `<span>${f}</span>`).join('');
-  $('#ticker').innerHTML = html + html;
+/* ---------- scroll story + marquee (one rAF-throttled handler) ---------- */
+const story = $('.story');
+const steps = $$('.story__steps li');
+const marquee = $('#marquee'), row = $('#marqueeRow');
+let ticking = false;
+function onScroll() {
+  ticking = false;
+  if (current !== 'home') return;
+  if (story && !reduce) {
+    const r = story.getBoundingClientRect();
+    const p = clamp01(-r.top / Math.max(1, r.height - innerHeight));
+    // four stages: sheet drops in, cells tidy up, design appears, book done
+    const seg = (a, b) => clamp01((p - a) / (b - a));
+    const s0 = seg(0, 0.12), s1 = seg(0.18, 0.42), s2 = seg(0.48, 0.68), s3 = seg(0.76, 0.92);
+    story.style.setProperty('--s0', s0.toFixed(3));
+    story.style.setProperty('--s1', s1.toFixed(3));
+    story.style.setProperty('--s2', s2.toFixed(3));
+    story.style.setProperty('--s3', s3.toFixed(3));
+    const active = p < 0.18 ? 0 : p < 0.48 ? 1 : p < 0.76 ? 2 : 3;
+    steps.forEach((li, i) => li.classList.toggle('is-on', i === active));
+  }
+  if (marquee && row && !reduce) {
+    const offset = (innerHeight - marquee.getBoundingClientRect().top) * 0.35;
+    row.style.transform = `translate3d(calc(-33.333% + ${offset}px), 0, 0)`;
+  }
+}
+function scrollMotion() {
+  if (reduce) { steps.forEach(li => li.classList.add('is-on')); return; }
+  const req = () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } };
+  addEventListener('scroll', req, { passive: true });
+  addEventListener('resize', req);
+  onScroll();
 }
 
 function nav() {
@@ -206,38 +221,43 @@ function nav() {
   addEventListener('scroll', on, { passive: true }); on();
 }
 
-function gallery() {
-  const g = $('#tplGallery');
-  g.innerHTML = TEMPLATES.map((t, i) => `
-    <button class="tpl-card reveal" data-tpl="${t.id}" type="button" aria-label="Start a book with the ${t.name} template">
-      <div class="tpl-card__page"><canvas width="10" height="14" aria-hidden="true"></canvas></div>
+/* ---------- designs marquee: real template previews ---------- */
+function designs() {
+  const card = (t, hidden) => `
+    <button class="tpl-card" type="button" data-tpl="${t.id}" ${hidden ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Start a book with the ${t.name} design"`}>
+      <span class="tpl-card__page"><img alt="" data-img="${t.id}"></span>
       <span class="tpl-card__name">${t.name}</span>
-      <span class="tpl-card__note">${t.note}</span>
-    </button>`).join('');
-  g.addEventListener('click', (e) => {
+    </button>`;
+  row.innerHTML = [0, 1, 2].map(k => TEMPLATES.map(t => card(t, k !== 1)).join('')).join('');
+  row.addEventListener('click', (e) => {
     const b = e.target.closest('[data-tpl]');
-    if (b) location.hash = `#/studio?template=${b.dataset.tpl}`;
+    if (!b) return;
+    lastClick = [e.clientX, e.clientY];
+    location.hash = `#/studio?template=${b.dataset.tpl}`;
   });
   const io = new IntersectionObserver((entries) => {
     if (!entries.some(e => e.isIntersecting)) return;
     io.disconnect();
-    const libsReady = () => window.PDFLib ? Promise.resolve() : new Promise(r => addEventListener('load', r, { once: true }));
-    libsReady().then(() => {
-      $$('.tpl-card', g).forEach(card => {
-        const cv = $('canvas', card);
-        drawThumb(cv, card.dataset.tpl, { ...DEFAULTS }, 'cover', card.clientWidth || 180);
-      });
+    const ready = () => window.PDFLib ? Promise.resolve() : new Promise(r => addEventListener('load', r, { once: true }));
+    ready().then(async () => {
+      for (const t of TEMPLATES) {
+        const cv = document.createElement('canvas');
+        await drawThumb(cv, t.id, { ...DEFAULTS }, 'cover', 190);
+        if (!cv.dataset.ok) continue;
+        const url = cv.toDataURL('image/jpeg', 0.86);
+        $$(`img[data-img="${t.id}"]`, row).forEach(img => { img.src = url; img.classList.add('is-ok'); });
+      }
     });
-  }, { rootMargin: '300px' });
-  io.observe(g);
+  }, { rootMargin: '400px' });
+  io.observe(marquee);
 }
 
 /* ---------- start ---------- */
-ticker();
 nav();
-gallery();
+designs();
 reveals();
 buttons();
+scrollMotion();
 goLinks();
 route(true);
 runLoader();

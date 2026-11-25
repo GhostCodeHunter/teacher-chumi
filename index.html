@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ടീച്ചർ.Chumi — Excel to kids' PDF books</title>
   <meta name="description" content="ടീച്ചർ.Chumi turns Excel sheets into neat, colourful PDF books for kids. Auto margins, same fonts for every number, templates, backgrounds and watermarks. Free, runs in your browser.">
-  <meta name="theme-color" content="#FFF8EC">
+  <meta name="theme-color" content="#F4EBE3">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +16,7 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body class="is-loading">
+<script>document.documentElement.classList.add('js')</script>
 
 <!-- icon sprite -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -48,174 +49,140 @@
 <!-- ============ LOADER ============ -->
 <div class="loader" id="loader" role="status" aria-live="polite">
   <div class="loader__inner">
-    <div class="abacus" aria-hidden="true">
-      <div class="abacus__frame">
-        <span class="rod"><i></i><i></i><i></i></span>
-        <span class="rod"><i></i><i></i><i></i></span>
-        <span class="rod"><i></i><i></i><i></i></span>
-        <span class="rod"><i></i><i></i><i></i></span>
-        <span class="rod"><i></i><i></i><i></i></span>
-      </div>
-    </div>
-    <div class="loader__name" aria-label="ടീച്ചർ.Chumi"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="latin" data-split>Chumi</span></div>
-    <div class="loader__bar"><span id="loaderBar"></span></div>
+    <img class="loader__dino" src="assets/dino.svg" alt="" width="150" height="144">
+    <div class="loader__name" aria-label="ടീച്ചർ.Chumi"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word" data-split>Chumi</span></div>
+    <div class="beads" id="loaderBeads" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="loader__count"><span id="loaderCount">0</span>%</div>
   </div>
 </div>
 
-<!-- rainbow page transition -->
-<div class="wipe" id="wipe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+<!-- page transition -->
+<div class="wipe" id="wipe" aria-hidden="true"><img src="assets/dino.svg" alt="" width="120" height="115"></div>
 
 <!-- ============ LANDING ============ -->
 <main id="view-home" class="view is-active" data-view="home">
   <header class="nav" id="nav">
     <a class="brand" href="#/" aria-label="ടീച്ചർ.Chumi home">
       <img src="assets/logo.svg" alt="" width="40" height="40">
-      <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
+      <span class="brand__name"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word"><i>C</i><i>h</i><i>u</i><i>m</i><i>i</i></span></span>
     </a>
     <nav class="nav__links" aria-label="Main">
-      <a href="#features">Features</a>
       <a href="#how">How it works</a>
-      <a href="#templates">Templates</a>
+      <a href="#features">Features</a>
+      <a href="#templates">Designs</a>
     </nav>
     <a class="btn btn--primary btn--sm" href="#/studio" data-go="studio"><span>Open Studio</span><svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   </header>
 
   <section class="hero">
+    <span class="cloud cloud--1" aria-hidden="true"></span>
+    <span class="cloud cloud--2" aria-hidden="true"></span>
+    <span class="cloud cloud--3" aria-hidden="true"></span>
     <div class="hero__copy">
-      <p class="chip reveal"><svg class="ico" aria-hidden="true"><use href="#i-star"/></svg> For teachers who make kids' books</p>
-      <h1 class="hero__title reveal">
-        Excel sheets in.<br>
-        <span class="squiggle">Happy books<svg viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16 C 40 4, 70 22, 110 12 S 180 4, 220 14 S 280 20, 296 8"/></svg></span> out.
-      </h1>
-      <p class="hero__lead reveal">Upload your worksheet file. ടീച്ചർ.Chumi lines up every margin, every number and every page, then gives you a print-ready PDF. Pick a fun design, add your background or a watermark, and download.</p>
-      <div class="hero__cta reveal">
+      <p class="badge" data-enter style="--d:.1s"><span>New</span> Excel to PDF books for kids</p>
+      <h1 class="hero__title" data-enter style="--d:.2s"><span class="line">Turn worksheets</span> <span class="line">into <span class="hl">happy books</span></span></h1>
+      <p class="hero__lead" data-enter style="--d:.35s">Upload your Excel file. ടീച്ചർ.Chumi sets every margin, every number and every page, then hands you a print-ready PDF.</p>
+      <div class="hero__cta" data-enter style="--d:.5s">
         <a class="btn btn--primary btn--lg magnetic" href="#/studio" data-go="studio"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span>Make my book</span></a>
-        <a class="btn btn--ghost btn--lg" href="#/studio?sample=1" data-go="studio" data-sample="1"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span>Try a sample book</span></a>
+        <a class="btn btn--ghost btn--lg" href="#/studio?sample=1" data-go="studio"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg><span>See a sample</span></a>
       </div>
-      <ul class="hero__trust reveal">
-        <li><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Files stay on your computer</li>
-        <li><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> Free, no sign up</li>
-      </ul>
+      <p class="hero__trust" data-enter style="--d:.65s"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Free. Your files never leave your computer.</p>
     </div>
 
-    <div class="hero__art" aria-hidden="true">
-      <div class="float f1">+</div><div class="float f2">7</div><div class="float f3">÷</div><div class="float f4">3</div><div class="float f5">×</div>
-      <span class="bead b1"></span><span class="bead b2"></span><span class="bead b3"></span>
-      <div class="sheet-card" data-depth="0.4">
-        <div class="sheet-card__bar"><i></i><i></i><i></i><span>worksheet.xlsx</span></div>
-        <div class="grid">
-          <span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span>
+    <div class="hero__art" aria-hidden="true" data-enter style="--d:.3s">
+      <div class="blob"></div>
+      <div class="page-card" data-depth="0.5">
+        <div class="page-card__bands"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="page-card__pill">Exercise 1</div>
+        <div class="page-card__grid">
+          <b>Q1</b><b>Q2</b><b>Q3</b><b>Q4</b>
           <span>4</span><span>8</span><span>2</span><span>6</span>
-          <span>+3</span><span>-5</span><span>+7</span><span>+1</span>
-          <span>-2</span><span>+4</span><span>-6</span><span>-3</span>
-          <span>___</span><span>___</span><span>___</span><span>___</span>
+          <span>+3</span><span>−5</span><span>+7</span><span>+1</span>
+          <span>−2</span><span>+4</span><span>−6</span><span>−3</span>
+          <span>5</span><span>2</span><span>1</span><span>9</span>
         </div>
+        <div class="page-card__num">1</div>
       </div>
-      <div class="magic"><svg class="ico" aria-hidden="true"><use href="#i-wand"/></svg></div>
-      <div class="book" data-depth="0.8">
-        <div class="book__page book__page--l">
-          <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="pill">Exercise 1</div>
-          <div class="mini">
-            <b>Q1</b><b>Q2</b><b>Q3</b>
-            <span>4</span><span>8</span><span>2</span>
-            <span>+3</span><span>-5</span><span>+7</span>
-            <span>-2</span><span>+4</span><span>-6</span>
-          </div>
-          <div class="pnum">1</div>
-        </div>
-        <div class="book__page book__page--r">
-          <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="pill pill--b">Times Tables</div>
-          <div class="mini mini--4">
-            <b>×</b><b>2</b><b>3</b><b>4</b>
-            <span>1</span><span>2</span><span>3</span><span>4</span>
-            <span>2</span><span>4</span><span>6</span><span>8</span>
-            <span>3</span><span>6</span><span>9</span><span>12</span>
-          </div>
-          <div class="pnum">2</div>
-        </div>
-        <div class="book__spine"></div>
-      </div>
+      <img class="hero__dino" src="assets/dino.svg" alt="" width="260" height="250" data-depth="1">
+      <span class="tile tile--a" data-depth="1.4">1<i></i></span>
+      <span class="tile tile--b" data-depth="1.8">2<i></i></span>
+      <span class="tile tile--c" data-depth="1.2">3<i></i></span>
     </div>
   </section>
 
-  <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
+  <!-- scroll story: sheet becomes a book -->
+  <section class="story" id="how" aria-labelledby="storyTitle">
+    <div class="story__sticky">
+      <div class="story__text">
+        <p class="eyebrow">How it works</p>
+        <h2 id="storyTitle">From messy sheet to neat book</h2>
+        <ol class="story__steps">
+          <li data-step="0"><span class="n">1</span><div><h3>Upload your Excel</h3><p>Drop a .xlsx or .csv file. Each sheet becomes a chapter.</p></div></li>
+          <li data-step="1"><span class="n">2</span><div><h3>Chumi tidies it</h3><p>Margins, padding, fonts and numbers line up on every page.</p></div></li>
+          <li data-step="2"><span class="n">3</span><div><h3>Pick a fun design</h3><p>Rainbows, balloons, clouds or your own background.</p></div></li>
+          <li data-step="3"><span class="n">4</span><div><h3>Check and download</h3><p>Look at every page, then save your PDF book.</p></div></li>
+        </ol>
+      </div>
+      <div class="story__stage" aria-hidden="true">
+        <div class="sheet">
+          <div class="sheet__bar"><i></i><i></i><i></i><span>worksheet.xlsx</span></div>
+          <div class="sheet__deco"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="sheet__title">Exercise 1</div>
+          <div class="sheet__grid">
+            <b style="--dx:-6px;--dy:3px;--r:-4deg;--k:1.25">Q1</b><b style="--dx:4px;--dy:-2px;--r:3deg;--k:.8">Q2</b><b style="--dx:-3px;--dy:5px;--r:2deg;--k:1.1">Q3</b><b style="--dx:8px;--dy:1px;--r:-3deg;--k:.9">Q4</b>
+            <span style="--dx:-14px;--dy:4px;--r:-6deg;--k:1.3">4</span><span style="--dx:10px;--dy:-6px;--r:5deg;--k:.75">8</span><span style="--dx:-8px;--dy:2px;--r:-2deg;--k:1.2">2</span><span style="--dx:12px;--dy:6px;--r:7deg;--k:.85">6</span>
+            <span style="--dx:6px;--dy:-4px;--r:4deg;--k:.8">+3</span><span style="--dx:-12px;--dy:5px;--r:-5deg;--k:1.3">−5</span><span style="--dx:9px;--dy:-3px;--r:3deg;--k:1.1">+7</span><span style="--dx:-6px;--dy:7px;--r:-7deg;--k:.9">+1</span>
+            <span style="--dx:-10px;--dy:-5px;--r:-3deg;--k:1.15">−2</span><span style="--dx:14px;--dy:3px;--r:6deg;--k:.8">+4</span><span style="--dx:-5px;--dy:-6px;--r:-4deg;--k:1.25">−6</span><span style="--dx:7px;--dy:4px;--r:2deg;--k:.9">−3</span>
+            <span style="--dx:9px;--dy:-3px;--r:5deg;--k:1.2">5</span><span style="--dx:-7px;--dy:5px;--r:-4deg;--k:.85">2</span><span style="--dx:11px;--dy:2px;--r:6deg;--k:1.1">1</span><span style="--dx:-9px;--dy:-4px;--r:-5deg;--k:.9">9</span>
+            <span style="--dx:-4px;--dy:6px;--r:-3deg;--k:1">___</span><span style="--dx:6px;--dy:-5px;--r:4deg;--k:1">___</span><span style="--dx:-8px;--dy:3px;--r:-6deg;--k:1">___</span><span style="--dx:5px;--dy:5px;--r:3deg;--k:1">___</span>
+          </div>
+          <div class="sheet__num">1</div>
+          <div class="sheet__done"><svg class="ico"><use href="#i-download"/></svg> book.pdf</div>
+        </div>
+        <div class="sheet sheet--back"></div>
+        <img class="story__dino" src="assets/dino.svg" alt="" width="150" height="144">
+      </div>
+    </div>
+  </section>
 
   <section class="section" id="features">
-    <div class="section__head reveal">
-      <p class="kicker">What it does for you</p>
-      <h2>Less fixing. More teaching.</h2>
-      <p>Every page gets checked and tidied the same way, so your book looks neat from the first page to the last.</p>
+    <div class="section__head" data-reveal>
+      <p class="eyebrow">Why teachers like it</p>
+      <h2>Less fixing, more teaching</h2>
     </div>
-    <div class="cards">
-      <article class="card tilt reveal" style="--c:var(--coral)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-margin"/></svg></div>
-        <h3>Margins set for you</h3>
-        <p>Each page gets the same margins and padding. Wide tables shrink a little or turn sideways, so nothing gets cut.</p>
-      </article>
-      <article class="card tilt reveal" style="--c:var(--sun)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-hash"/></svg></div>
-        <h3>Every number looks the same</h3>
-        <p>One font and one size for all numbers. Decimals line up and number columns get equal width.</p>
-      </article>
-      <article class="card tilt reveal" style="--c:var(--mint)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg></div>
-        <h3>See each page first</h3>
-        <p>Your book shows up as real PDF pages. Look through them, change things, then download when it looks right.</p>
-      </article>
-      <article class="card tilt reveal" style="--c:var(--sky)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-resize"/></svg></div>
-        <h3>Any page size</h3>
-        <p>A4 to start. Switch to A5, A3, B5, Letter, Legal, square or your own size in a click.</p>
-      </article>
-      <article class="card tilt reveal" style="--c:var(--grape)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg></div>
-        <h3>Fun designs for kids</h3>
-        <p>Rainbows, balloons, stars, clouds and crayon borders. Or upload your own background and add a watermark.</p>
-      </article>
-      <article class="card tilt reveal" style="--c:var(--coral)">
-        <div class="card__icon"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg></div>
-        <h3>Private and free</h3>
-        <p>Your Excel file never leaves your computer. The whole book is made right here in your browser.</p>
-      </article>
+    <div class="tiles" data-stagger>
+      <article class="tile-card" data-reveal style="--c:#F0A04B;--t:#FDEBD5"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-margin"/></svg></span><h3>Margins set for you</h3><p>Same margins and padding on every page. Wide tables fit without cutting.</p></article>
+      <article class="tile-card" data-reveal style="--c:#5B8FE0;--t:#E2ECFB"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-hash"/></svg></span><h3>Numbers look the same</h3><p>One number font, one size, matching decimals and equal columns.</p></article>
+      <article class="tile-card" data-reveal style="--c:#5DB8A5;--t:#DDF2EC"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg></span><h3>See every page</h3><p>Real PDF pages show up while you change things.</p></article>
+      <article class="tile-card" data-reveal style="--c:#EC6A73;--t:#FCE2E3"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-resize"/></svg></span><h3>Any page size</h3><p>A4 to start, plus A5, A3, B5, Letter, square or your own size.</p></article>
+      <article class="tile-card" data-reveal style="--c:#9273CF;--t:#ECE5F8"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg></span><h3>Designs and watermarks</h3><p>Kids' templates, your own backgrounds and a logo or text watermark.</p></article>
+      <article class="tile-card" data-reveal style="--c:#E0A21E;--t:#FBF0D2"><span class="tile-card__icon"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg></span><h3>Private and free</h3><p>Everything happens in your browser. Nothing is uploaded.</p></article>
     </div>
   </section>
 
-  <section class="section section--tint" id="how">
-    <div class="section__head reveal">
-      <p class="kicker">Four easy steps</p>
-      <h2>From sheet to book in a minute</h2>
+  <section class="designs" id="templates" aria-labelledby="designsTitle">
+    <div class="section__head" data-reveal>
+      <p class="eyebrow">Designs</p>
+      <h2 id="designsTitle">Pick a look kids will love</h2>
+      <p>Tap a design to start your book with it.</p>
     </div>
-    <ol class="steps">
-      <li class="step reveal" style="--c:var(--coral)"><span class="step__n">1</span><h3>Upload Excel</h3><p>Drop your .xlsx or .csv file. Each sheet becomes a chapter.</p></li>
-      <li class="step reveal" style="--c:var(--sun)"><span class="step__n">2</span><h3>Auto tidy</h3><p>Pages, margins, fonts and numbers get lined up for you.</p></li>
-      <li class="step reveal" style="--c:var(--mint)"><span class="step__n">3</span><h3>Pick a design</h3><p>Choose a template, page size, background or watermark.</p></li>
-      <li class="step reveal" style="--c:var(--sky)"><span class="step__n">4</span><h3>Check and download</h3><p>Look at every page, confirm, and save your PDF book.</p></li>
-    </ol>
+    <div class="marquee" id="marquee"><div class="marquee__row" id="marqueeRow"></div></div>
   </section>
 
-  <section class="section" id="templates">
-    <div class="section__head reveal">
-      <p class="kicker">Templates</p>
-      <h2>Pick a look your kids will love</h2>
-      <p>Tap a design to start your book with it. You can change it any time.</p>
-    </div>
-    <div class="tpl-gallery" id="tplGallery"></div>
-  </section>
-
-  <section class="cta reveal">
+  <section class="cta" data-reveal>
     <div class="cta__box">
-      <h2>Ready to make your book?</h2>
-      <p>It takes one Excel file and about a minute.</p>
-      <a class="btn btn--light btn--lg magnetic" href="#/studio" data-go="studio" data-confetti><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>Start my book</span></a>
+      <img class="cta__dino" src="assets/dino.svg" alt="" width="190" height="182">
+      <div>
+        <h2>Ready to make your book?</h2>
+        <p>One Excel file. About a minute.</p>
+        <a class="btn btn--primary btn--lg magnetic" href="#/studio" data-go="studio" data-confetti><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>Start my book</span></a>
+      </div>
     </div>
   </section>
 
   <footer class="footer">
-    <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
-    <span>Made with love for teachers and little learners.</span>
+    <span class="brand__name"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word"><i>C</i><i>h</i><i>u</i><i>m</i><i>i</i></span></span>
+    <span>Made for teachers and little learners.</span>
   </footer>
 </main>
 
@@ -225,7 +192,7 @@
     <a class="icon-btn" href="#/" data-go="home" aria-label="Back to home" title="Back to home"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></a>
     <a class="brand brand--sm" href="#/" data-go="home" aria-label="ടീച്ചർ.Chumi home">
       <img src="assets/logo.svg" alt="" width="32" height="32">
-      <span class="brand__name"><span class="ml">ടീച്ചർ</span><b>.Chumi</b></span>
+      <span class="brand__name"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word"><i>C</i><i>h</i><i>u</i><i>m</i><i>i</i></span></span>
     </a>
     <span class="file-chip" id="fileChip" hidden><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span id="fileName"></span></span>
     <span class="status" id="status" aria-live="polite"></span>
@@ -443,7 +410,7 @@
       <div class="empty" id="empty">
         <label class="drop drop--big" id="dropBig">
           <input type="file" id="fileInputBig" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
-          <div class="drop__art" aria-hidden="true"><span></span><span></span><span></span></div>
+          <img class="drop__dino" src="assets/dino.svg" alt="" width="140" height="134">
           <h2>Drop your Excel file here</h2>
           <p>Each sheet becomes a chapter. Your file stays on this computer.</p>
           <span class="btn btn--primary btn--lg"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span>Choose Excel file</span></span>
