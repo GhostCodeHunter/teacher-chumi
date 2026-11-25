@@ -20,7 +20,15 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body class="is-loading">
-<script>document.documentElement.classList.add('js')</script>
+<script>
+  document.documentElement.classList.add('js');
+  // safety net: if a file fails to load, never leave people stuck on the loading screen
+  setTimeout(function () {
+    if (!document.body.classList.contains('is-loading')) return;
+    var l = document.getElementById('loader');
+    if (l) l.innerHTML = '<div style="text-align:center;font:600 1.05rem Nunito,system-ui,sans-serif;color:#2E2A26;padding:2rem">Some files did not load.<br><br><button onclick="location.reload()" style="font:700 1rem Nunito,system-ui,sans-serif;padding:.8rem 1.6rem;border:0;border-radius:999px;background:#F0A04B;cursor:pointer">Reload page</button></div>';
+  }, 15000);
+</script>
 
 <!-- icon sprite -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">

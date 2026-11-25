@@ -1,5 +1,5 @@
 // ടീച്ചർ.Chumi service worker: works offline once installed or visited.
-const VERSION = 'chumi-v7';
+const VERSION = 'chumi-v8';
 const SHELL = [
   './',
   "./assets/chumi-bird-sm.webp",
@@ -86,8 +86,10 @@ self.addEventListener('fetch', (e) => {
       }
       try {
         const res = await fetch(req);
-        if (res && res.ok) cache.put(req, res.clone());
-        return res;
+        if (res && res.ok) { cache.put(req, res.clone()); return res; }
+        // server hiccup (e.g. 503 while the site updates): use the saved copy if we have one
+        const saved = await cache.match(req, { ignoreSearch: true });
+        return saved || res;
       } catch {
         const hit = await cache.match(req, { ignoreSearch: true });
         return hit || (req.mode === 'navigate' ? cache.match('./index.html') : Response.error());
