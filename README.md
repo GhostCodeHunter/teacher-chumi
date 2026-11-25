@@ -11,7 +11,9 @@ Upload an `.xlsx` or `.csv` file. Each sheet becomes a chapter. ടീച്ച�
 - **Same style everywhere.** One text font, one number font, one text size for the whole book. Numbers in a column share the same decimals. Big numbers can use `1,234,567` or Indian `12,34,567` grouping.
 - **Page sizes.** A4 by default, plus A5, A3, B5, Letter, Legal, Square and a custom size. Portrait, landscape or auto. Mirror margins for printed books.
 - **Kids' templates.** Rainbow Fun, Party Balloons, Crayon Border, Sky & Clouds, Little Stars, Abacus Beads, Soft Bloom, Ribbon Band, Notebook, Classic Frame and Clean, with colour sets.
-- **Your own designs.** Upload background pictures (all pages, cover only or inside pages) and add a text or logo watermark.
+- **Page designs only when you want them.** Pages are plain by default. Pick a design for the whole book, a different one for a chapter, the cover, or any single page (the Design menu under each page). Picture designs keep the content inside their frame.
+- **Your own designs.** Upload full-page background pictures and add a text or logo watermark.
+- **Clear book** button to start again with a new file.
 - **Cover and contents pages**, running headers and page numbers.
 - **Malayalam text** is kept sharp in the PDF.
 - **Private.** Everything runs in the browser. Files are never uploaded anywhere.

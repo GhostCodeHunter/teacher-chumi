@@ -47,6 +47,7 @@
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="m4 18 5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
     <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 20h6M12 16v4M12 7v5m0 0-2.2-2.2M12 12l2.2-2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5Zm0 0v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -170,7 +171,7 @@
     <div class="section__head" data-reveal>
       <p class="eyebrow">Designs</p>
       <h2 id="designsTitle">Pick a look kids will love</h2>
-      <p>Tap a design to start your book with it.</p>
+      <p>Plain pages by default. Add a design to the whole book, one chapter or a single page.</p>
     </div>
     <div class="marquee" id="marquee"><div class="marquee__row" id="marqueeRow"></div></div>
   </section>
@@ -201,6 +202,7 @@
       <span class="brand__name"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word"><i>C</i><i>h</i><i>u</i><i>m</i><i>i</i></span></span>
     </a>
     <span class="file-chip" id="fileChip" hidden><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span id="fileName"></span></span>
+    <button class="icon-btn" type="button" id="clearBtn" hidden aria-label="Clear book" title="Clear book"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></button>
     <span class="status" id="status" aria-live="polite"></span>
     <button class="icon-btn install-icon" type="button" data-install hidden aria-label="Install app on this computer" title="Install app"><svg class="ico" aria-hidden="true"><use href="#i-monitor"/></svg></button>
     <button class="btn btn--primary btn--sm" id="downloadBtn" disabled><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Download PDF</span></button>
@@ -219,6 +221,7 @@
           </label>
           <button class="link-btn" id="sampleBtn2" type="button">Use the sample book instead</button>
           <div id="chapterList" class="chapters" aria-label="Chapters"></div>
+          <button class="btn btn--ghost btn--sm clear-book" id="clearBtn2" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg><span>Clear book</span></button>
         </div>
       </section>
 
@@ -336,41 +339,40 @@
 
       <!-- Design -->
       <section class="group">
-        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--coral)"></span>6. Design template<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--coral)"></span>6. Page design<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
-          <div class="tpl-pick" id="tplPick" role="radiogroup" aria-label="Template"></div>
-          <div class="row3">
-            <div class="field"><label for="s-accent">Main colour</label><input id="s-accent" data-k="accent" type="color"></div>
-            <div class="field"><label for="s-accent2">Second colour</label><input id="s-accent2" data-k="accent2" type="color"></div>
-            <div class="field"><label for="s-ink">Text colour</label><input id="s-ink" data-k="ink" type="color"></div>
+          <p class="hint">Pages are plain by default. Pick a design only if you want one.</p>
+          <div class="field"><span class="label">Design for the whole book</span>
+            <div class="tpl-pick" id="designPick" role="radiogroup" aria-label="Design for the whole book"></div>
+          </div>
+          <label class="drop drop--small">
+            <input type="file" id="bgInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="vh">
+            <svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>
+            <span><b>Add your own design</b><small>PNG or JPG, full page picture</small></span>
+          </label>
+          <div class="field"><label for="s-coverDesign">Cover page design</label>
+            <select id="s-coverDesign" data-k="coverDesign" data-design-select="same"></select></div>
+          <div class="tip"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span>Want a different look on some pages? Use the <b>Design</b> menu under any page in the preview, or next to a chapter above.</span></div>
+          <div class="row2">
+            <div class="field"><label for="s-bgOpacity">Picture strength <output id="o-bgOpacity"></output></label><input id="s-bgOpacity" data-k="bgOpacity" type="range" min="0.1" max="1" step="0.05"></div>
+            <div class="field"><label for="s-bgFit">Your pictures</label>
+              <select id="s-bgFit" data-k="bgFit"><option value="cover">Fill page</option><option value="contain">Show whole</option><option value="stretch">Stretch</option></select></div>
+          </div>
+          <div class="img-list" id="bgList"></div>
+          <div class="field"><span class="label">Colours for tables and shapes</span>
+            <div class="row3">
+              <div class="field"><label for="s-accent">Main</label><input id="s-accent" data-k="accent" type="color"></div>
+              <div class="field"><label for="s-accent2">Second</label><input id="s-accent2" data-k="accent2" type="color"></div>
+              <div class="field"><label for="s-ink">Text</label><input id="s-ink" data-k="ink" type="color"></div>
+            </div>
           </div>
           <div class="swatches" id="swatches" aria-label="Colour sets"></div>
         </div>
       </section>
 
-      <!-- Background -->
-      <section class="group">
-        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sun)"></span>7. Background design<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
-        <div class="group__body">
-          <label class="drop drop--small">
-            <input type="file" id="bgInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="vh">
-            <svg class="ico" aria-hidden="true"><use href="#i-image"/></svg>
-            <span><b>Upload background designs</b><small>PNG or JPG, full page size works best</small></span>
-          </label>
-          <div class="img-list" id="bgList"></div>
-          <div class="row2">
-            <div class="field"><label for="s-bgScope">Use on</label>
-              <select id="s-bgScope" data-k="bgScope"><option value="all">All pages</option><option value="cover">Cover only</option><option value="content">Inside pages only</option></select></div>
-            <div class="field"><label for="s-bgFit">Fit</label>
-              <select id="s-bgFit" data-k="bgFit"><option value="cover">Fill page</option><option value="contain">Show whole picture</option><option value="stretch">Stretch</option></select></div>
-          </div>
-          <div class="field"><label for="s-bgOpacity">Strength <output id="o-bgOpacity"></output></label><input id="s-bgOpacity" data-k="bgOpacity" type="range" min="0.1" max="1" step="0.05"></div>
-        </div>
-      </section>
-
       <!-- Watermark -->
       <section class="group">
-        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--mint)"></span>8. Watermark<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--mint)"></span>7. Watermark<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <div class="seg" role="radiogroup" aria-label="Watermark type">
             <label><input type="radio" name="wmType" value="none" data-k="wmType"><span>None</span></label>
@@ -398,7 +400,7 @@
 
       <!-- Header/footer -->
       <section class="group">
-        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>9. Header &amp; page numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+        <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>8. Header &amp; page numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <label class="switch"><input type="checkbox" data-k="runningHeader"><span></span>Book and chapter name at the top</label>
           <div class="row2">
@@ -476,6 +478,18 @@
       <li><b>Firefox:</b> open this page in Chrome or Edge to install it.</li>
     </ul>
     <div class="modal__actions"><button class="btn btn--primary" value="ok">Got it</button></div>
+  </form>
+</dialog>
+
+<dialog class="modal" id="clearDialog" aria-labelledby="clearTitle">
+  <form method="dialog" class="modal__box">
+    <div class="modal__art modal__art--warn" aria-hidden="true"><svg class="ico"><use href="#i-trash"/></svg></div>
+    <h2 id="clearTitle">Clear this book?</h2>
+    <p>The chapters, preview and page designs here will be removed. Your Excel file on your computer stays safe, and your settings are kept.</p>
+    <div class="modal__actions">
+      <button class="btn btn--ghost" value="cancel">Keep book</button>
+      <button class="btn btn--danger" value="clear"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg><span>Clear book</span></button>
+    </div>
   </form>
 </dialog>
 

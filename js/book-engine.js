@@ -1,6 +1,6 @@
 // ടീച്ചർ.Chumi — book engine
 // Turns sheets into a laid-out, print-ready PDF (vector text, same fonts everywhere).
-import { templateById, insetPt, roundRect } from './templates.js';
+import { TEMPLATES, insetPt, roundRect } from './templates.js';
 
 const MM = 72 / 25.4;
 const topRound = (x, y, w, h, r) => `M${x} ${y + h} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + w - r} Q${x + w} ${y} ${x + w} ${y + r} V${y + h} Z`;
@@ -24,8 +24,8 @@ export const DEFAULTS = {
   tableStyle: 'playful', zebra: true, grid: 'all', tableWidth: 'full', equalCols: true,
   chapterTitles: true,
   runningHeader: true, pageNumbers: 'center', pageNumFormat: 'n',
-  template: 'rainbow', accent: '#F0A04B', accent2: '#5DB8A5', ink: '#2E2A26',
-  bgId: null, bgScope: 'all', bgOpacity: 1, bgFit: 'cover',
+  design: 'none', coverDesign: 'same', accent: '#F0A04B', accent2: '#5DB8A5', ink: '#2E2A26',
+  bgOpacity: 1, bgFit: 'cover',
   wmType: 'none', wmText: 'ടീച്ചർ.Chumi', wmOpacity: 0.08, wmAngle: 40, wmScale: 60, wmColor: '#2E2A26', wmImageId: null, wmOnTop: false,
 };
 
@@ -302,14 +302,48 @@ function margins(s, w, h) {
   return { base, inner: s.mirror ? base * 1.25 : base, outer: s.mirror ? base * 0.85 : base, t: base, b: base };
 }
 
-function frame(s, tpl, landscape) {
+// ---------- designs: none, vector template ("tpl:id") or picture ("img:id") ----------
+export function resolveDesign(id, images) {
+  if (!id || id === 'none') return { kind: 'none', id: 'none' };
+  if (id.startsWith('tpl:')) { const t = TEMPLATES.find(x => x.id === id.slice(4)); return t ? { kind: 'tpl', id, tpl: t } : { kind: 'none', id: 'none' }; }
+  if (id.startsWith('img:')) { const im = images.find(x => x.id === id); return im ? { kind: 'img', id, img: im } : { kind: 'none', id: 'none' }; }
+  return { kind: 'none', id: 'none' };
+}
+
+function pictureRect(img, w, h, s) {
+  return fitRect(img.w || 1, img.h || 1, w, h, img.fit || s.bgFit);
+}
+
+// space each design needs around the content, from the page edges
+function designNeed(d, w, h, s, base) {
+  const out = { l: base, r: base, t: base, b: base };
+  if (d.kind === 'tpl') { const i = insetPt(d.tpl); out.l += i; out.r += i; out.t += i; out.b += i; }
+  if (d.kind === 'img' && d.img.safe) {
+    const r = pictureRect(d.img, w, h, s), sf = d.img.safe;
+    out.l = Math.max(base, r.x + r.width * sf.l);
+    out.r = Math.max(base, w - (r.x + r.width) + r.width * sf.r);
+    out.t = Math.max(base, h - (r.y + r.height) + r.height * sf.t);
+    out.b = Math.max(base, r.y + r.height * sf.b);
+  }
+  return out;
+}
+
+function frame(s, landscape) {
   const { w, h } = pageDims(s, landscape);
   const m = margins(s, w, h);
-  const ins = insetPt(tpl);
+  // every page of the book gets the same margins: the biggest any chosen design needs
+  for (const d of (s.__designs || [])) {
+    const n = designNeed(d, w, h, s, m.base);
+    const side = Math.max(n.l, n.r);
+    if (s.mirror) { m.inner = Math.max(m.inner, side); m.outer = Math.max(m.outer, side); }
+    else { m.inner = Math.max(m.inner, n.l); m.outer = Math.max(m.outer, n.r); }
+    m.t = Math.max(m.t, n.t); m.b = Math.max(m.b, n.b);
+  }
+  const ins = 0;
   const headH = s.runningHeader ? 16 : 0;
   const footH = s.pageNumbers !== 'none' ? 16 : 0;
-  const contentW = w - m.inner - m.outer - 2 * ins;
-  return { w, h, m, ins, headH, footH, contentW, top: h - m.t - ins - headH, bottom: m.b + ins + footH };
+  const contentW = w - m.inner - m.outer;
+  return { w, h, m, ins, headH, footH, contentW, top: h - m.t - headH, bottom: m.b + footH };
 }
 
 function baseSizeFor(s, fr) {
@@ -413,15 +447,15 @@ function splitGroups(meas, W, size, keyCol) {
   return groups;
 }
 
-function planChapter(an, s, T, tpl, report, label) {
+function planChapter(an, s, T, report, label) {
   const meas = measureCols(an, s, T);
   const all = meas.map((_, j) => j);
   let landscape = s.orientation === 'landscape';
-  let fr = frame(s, tpl, landscape);
+  let fr = frame(s, landscape);
   let base = baseSizeFor(s, fr);
   let size = fitSize(meas, all, fr.contentW, base);
   if (size < s.minSize && s.orientation === 'auto' && !landscape) {
-    const fr2 = frame(s, tpl, true);
+    const fr2 = frame(s, true);
     const size2 = fitSize(meas, all, fr2.contentW, baseSizeFor(s, fr));
     if (size2 > size) { landscape = true; fr = fr2; size = size2; report.push({ k: 'fix', t: `${label}: wide table, turned pages sideways (landscape)` }); }
   }
@@ -695,8 +729,12 @@ export async function buildBook(book, settings, images = []) {
     courier: await doc.embedFont(F.Courier), courierB: await doc.embedFont(F.CourierBold),
   };
   const T = new TextEngine(doc, fonts);
-  const tpl = templateById(s.template);
   const C = colours(s);
+  const pageDesigns = s.pageDesigns || {};
+  const used = new Set([s.design, pageDesigns.toc]);
+  book.chapters.forEach(ch => { if (ch.include && ch.design && ch.design !== 'book') used.add(ch.design); });
+  Object.entries(pageDesigns).forEach(([k, v]) => { if (k !== 'cover') used.add(v); });
+  s.__designs = [...used].filter(Boolean).map(id => resolveDesign(id, images)).filter(d => d.kind !== 'none');
   const TC = tplColours(C, rgb);
 
   // 1. analyse + plan chapters
@@ -708,7 +746,7 @@ export async function buildBook(book, settings, images = []) {
     const label = ch.title || sheet.name;
     const an = analyseSheet(sheet, s, report, label);
     if (!an) { report.push({ k: 'warn', t: `${label}: sheet is empty, skipped` }); continue; }
-    chapters.push({ title: label, plan: planChapter(an, s, T, tpl, report, label) });
+    chapters.push({ title: label, design: ch.design && ch.design !== 'book' ? ch.design : null, plan: planChapter(an, s, T, report, label) });
   }
   if (!chapters.length) throw new Error('No sheets with data are selected. Tick at least one sheet with content.');
 
@@ -735,26 +773,29 @@ export async function buildBook(book, settings, images = []) {
   for (const ch of chapters) {
     ch.start = contentPages.length + 1;
     const pages = paginate(ch.plan, s, T, ch);
-    pages.forEach(p => { p.size = ch.plan.size; p.chapter = ch.title; });
+    pages.forEach(p => { p.size = ch.plan.size; p.chapter = ch.title; p.chapterDesign = ch.design; });
     contentPages.push(...pages);
   }
 
   // 3. front matter
-  const portrait = frame(s, tpl, s.orientation === 'landscape');
+  const portrait = frame(s, s.orientation === 'landscape');
   const imgCache = new Map();
-  const bgImg = images.find(i => i.id === s.bgId);
   const wmImg = images.find(i => i.id === s.wmImageId);
-  const bgRef = bgImg ? await embedImage(doc, bgImg, imgCache) : null;
   const wmRef = s.wmType === 'image' && wmImg ? await embedImage(doc, wmImg, imgCache) : null;
+  const pagesMeta = [];
 
-  const decorate = async (p, w, h, fr, kind, index) => {
-    if (bgRef && (s.bgScope === 'all' || s.bgScope === kind || (s.bgScope === 'content' && kind === 'toc'))) {
-      p.drawImage(bgRef, { ...fitRect(bgRef.width, bgRef.height, w, h, s.bgFit), opacity: clamp(+s.bgOpacity, 0.05, 1) });
+  const decorate = async (p, w, h, fr, kind, index, designId) => {
+    const d = resolveDesign(designId, images);
+    if (d.kind === 'img') {
+      const ref = await embedImage(doc, d.img, imgCache);
+      if (d.img.fill) p.drawRectangle({ x: 0, y: 0, width: w, height: h, color: rgb(...hexToRgb01(d.img.fill)) });
+      p.drawImage(ref, { ...pictureRect({ ...d.img, w: ref.width, h: ref.height }, w, h, s), opacity: clamp(+s.bgOpacity, 0.05, 1) });
+    } else if (d.kind === 'tpl') {
+      const ctx = { page: p, w, h, m: { l: fr.m.inner, r: fr.m.outer, t: fr.m.t, b: fr.m.b }, c: TC, rgb, deg: degrees, index };
+      try {
+        if (kind === 'cover') d.tpl.cover.call(d.tpl, ctx); else d.tpl.page.call(d.tpl, ctx);
+      } catch (e) { console.warn('template', e); }
     }
-    const ctx = { page: p, w, h, m: { l: fr.m.inner, r: fr.m.outer, t: fr.m.t, b: fr.m.b }, c: TC, rgb, deg: degrees, index };
-    try {
-      if (kind === 'cover') tpl.cover.call(tpl, ctx); else tpl.page.call(tpl, ctx);
-    } catch (e) { console.warn('template', e); }
     if (!s.wmOnTop) await watermark(p, w, h);
   };
   const watermark = async (p, w, h) => {
@@ -782,7 +823,9 @@ export async function buildBook(book, settings, images = []) {
   if (s.cover) {
     const { w, h } = portrait;
     const p = doc.addPage([w, h]);
-    await decorate(p, w, h, portrait, 'cover', pdfIndex++);
+    const cd = pageDesigns.cover || (s.coverDesign && s.coverDesign !== 'same' ? s.coverDesign : s.design);
+    pagesMeta.push({ key: 'cover', label: 'Cover', design: cd, own: !!pageDesigns.cover });
+    await decorate(p, w, h, portrait, 'cover', pdfIndex++, cd);
     const cw = w * 0.76;
     const ts = clamp(w / 13, 22, 64);
     let y = h * 0.62;
@@ -811,7 +854,9 @@ export async function buildBook(book, settings, images = []) {
     const perPage = Math.max(1, Math.floor((fr.top - fr.bottom - size * 4) / rowH));
     for (let i = 0; i < chapters.length; i += perPage) {
       const p = doc.addPage([fr.w, fr.h]);
-      await decorate(p, fr.w, fr.h, fr, 'toc', pdfIndex++);
+      const td = pageDesigns.toc || s.design;
+      pagesMeta.push({ key: 'toc', label: 'Contents', design: td, own: !!pageDesigns.toc });
+      await decorate(p, fr.w, fr.h, fr, 'toc', pdfIndex++, td);
       const left = fr.m.inner + fr.ins;
       let y = fr.top;
       if (i === 0) {
@@ -849,7 +894,10 @@ export async function buildBook(book, settings, images = []) {
     const p = doc.addPage([fr.w, fr.h]);
     const pageNo = i + 1;
     const isOdd = pageNo % 2 === 1;
-    await decorate(p, fr.w, fr.h, fr, 'content', pdfIndex++);
+    const own = pageDesigns[String(pageNo)];
+    const pd = own || pg.chapterDesign || s.design;
+    pagesMeta.push({ key: String(pageNo), label: `Page ${pageNo}`, chapter: pg.chapter, design: pd, own: !!own });
+    await decorate(p, fr.w, fr.h, fr, 'content', pdfIndex++, pd);
     await drawPageContent(p, pg, s, T, C, pageNo, isOdd);
     // check: everything stayed inside the printable area
     for (const op of pg.ops) {
@@ -890,7 +938,7 @@ export async function buildBook(book, settings, images = []) {
   if (T.canvasCount) report.push({ k: 'info', t: `Malayalam / special text kept sharp as high-resolution text images (${T.canvasCount})` });
 
   const bytes = await doc.save({ useObjectStreams: true });
-  return { bytes, report, pages: doc.getPageCount(), contentPages: total, fontSize: chapters[0].plan.size };
+  return { bytes, report, pages: doc.getPageCount(), contentPages: total, fontSize: chapters[0].plan.size, pagesMeta };
 }
 
 // image helper used by the UI: normalise any uploaded picture to png/jpg bytes, max 2600 px

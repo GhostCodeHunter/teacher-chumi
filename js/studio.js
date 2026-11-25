@@ -5,13 +5,14 @@ import { TEMPLATES } from './templates.js';
 import { openPdf, renderPage, cancelRender, closePdf } from './pdfview.js';
 import { drawThumb } from './thumbs.js';
 import { sampleBook } from './sample.js';
+import { PICTURES, allDesigns, designName, designOptionsHtml, loadPictures } from './designs.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const KEY = 'teacherChumi.settings.v2';
+const KEY = 'teacherChumi.settings.v3';
 
 const state = {
-  book: null, fileName: '', images: [],
+  book: null, fileName: '', images: [], pageDesigns: {},
   settings: loadSettings(),
   bytes: null, pdf: null, meta: null,
   busy: false, pending: false, timer: 0, token: 0,
@@ -24,7 +25,10 @@ function loadSettings() {
     if (raw && typeof raw === 'object') {
       const out = { ...DEFAULTS };
       for (const k of Object.keys(DEFAULTS)) if (k in raw && typeof raw[k] === typeof DEFAULTS[k] || (k in raw && (DEFAULTS[k] === null || k === 'baseSize' || k === 'decimals'))) out[k] = raw[k];
-      out.bgId = null; out.wmImageId = null; // pictures are not stored between visits
+      out.wmImageId = null; // your own pictures are not stored between visits
+      const known = (id) => id === 'none' || allDesigns([]).some(d => d.id === id);
+      if (!known(out.design)) out.design = 'none';
+      if (out.coverDesign !== 'same' && !known(out.coverDesign)) out.coverDesign = 'same';
       return out;
     }
   } catch { /* storage blocked */ }
@@ -89,7 +93,7 @@ function syncDependents() {
     const v = +s[k];
     o.textContent = k === 'wmAngle' ? `${v}°` : k === 'wmScale' ? `${v}%` : `${Math.round(v * 100)}%`;
   }
-  $$('.tpl-opt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.tpl === s.template)));
+  $$('.tpl-opt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.design === s.design)));
   renderImages();
 }
 
@@ -110,17 +114,35 @@ const SWATCHES = [
   ['Orange', '#F0A04B', '#5DB8A5'], ['Coral', '#EC6A73', '#5B8FE0'], ['Mint', '#5DB8A5', '#F0A04B'],
   ['Sky', '#5B8FE0', '#F6C24C'], ['Grape', '#9273CF', '#EC6A73'], ['Calm', '#C9A27E', '#7A9E9F'],
 ];
+function renderDesignPick() {
+  const pick = $('#designPick');
+  pick.innerHTML = allDesigns(state.images).map(d => {
+    const art = d.id === 'none' ? '<span class="tpl-none" aria-hidden="true"></span>'
+      : d.tpl ? '<canvas width="10" height="14" aria-hidden="true"></canvas>'
+      : `<img src="${escapeHtml(d.thumb)}" alt="" loading="lazy">`;
+    const name = d.id === 'none' ? 'Plain' : d.name;
+    return `<button type="button" class="tpl-opt" role="radio" data-design="${escapeHtml(d.id)}"${d.tpl ? ` data-tpl="${d.tpl}"` : ''} aria-checked="${d.id === state.settings.design}" title="${escapeHtml(d.note || d.name)}">${art}<span>${escapeHtml(name)}</span></button>`;
+  }).join('');
+  refreshThumbs();
+}
+function renderDesignSelects() {
+  const sel = $('#s-coverDesign');
+  const v = state.settings.coverDesign;
+  sel.innerHTML = `<option value="same">Same as the book</option>` + designOptionsHtml(state.images, v);
+  sel.value = v;
+}
 function buildPickers() {
-  const pick = $('#tplPick');
-  pick.innerHTML = TEMPLATES.map(t => `<button type="button" class="tpl-opt" role="radio" data-tpl="${t.id}" aria-checked="false" title="${t.note}"><canvas width="10" height="14" aria-hidden="true"></canvas><span>${t.name}</span></button>`).join('');
+  const pick = $('#designPick');
+  renderDesignPick();
+  renderDesignSelects();
   pick.addEventListener('click', (e) => {
     const b = e.target.closest('.tpl-opt'); if (!b) return;
-    state.settings.template = b.dataset.tpl; saveSettings(); syncDependents(); schedule(50);
+    state.settings.design = b.dataset.design; saveSettings(); syncDependents(); schedule(50);
   });
   pick.addEventListener('keydown', (e) => {
     if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) return;
     const opts = $$('.tpl-opt', pick);
-    let i = opts.findIndex(o => o.dataset.tpl === state.settings.template);
+    let i = opts.findIndex(o => o.dataset.design === state.settings.design);
     i = (i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
     opts[i].focus(); opts[i].click(); e.preventDefault();
   });
@@ -135,7 +157,7 @@ function buildPickers() {
 let thumbT = 0;
 function refreshThumbsSoon() { clearTimeout(thumbT); thumbT = setTimeout(refreshThumbs, 900); }
 function refreshThumbs() {
-  $$('.tpl-opt').forEach(b => drawThumb($('canvas', b), b.dataset.tpl, state.settings, 'content', b.clientWidth || 100));
+  $$('.tpl-opt[data-tpl]').forEach(b => drawThumb($('canvas', b), 'tpl:' + b.dataset.tpl, state.settings, 'content', b.clientWidth || 100));
 }
 
 /* ---------- pictures ---------- */
@@ -143,18 +165,19 @@ async function addImages(files, role) {
   for (const f of files) {
     try {
       const img = await prepareImage(f);
-      const id = 'img' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      state.images.push({ ...img, id, role, name: f.name });
-      if (role === 'bg') state.settings.bgId = id;
+      const id = 'img:u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const name = f.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'My design';
+      state.images.push({ ...img, id, role, name });
+      if (role === 'bg') { state.settings.design = id; toast('Design added and used for the whole book. Change single pages in the preview.'); }
       else { state.settings.wmImageId = id; state.settings.wmType = 'image'; }
     } catch (e) { toast(e.message || 'That picture could not be used.'); }
   }
-  fillForm(); schedule(50);
+  renderDesignPick(); renderDesignSelects(); renderChapters(); fillForm(); schedule(50);
 }
 function renderImages() {
   for (const role of ['bg', 'wm']) {
     const list = $(role === 'bg' ? '#bgList' : '#wmList');
-    const sel = role === 'bg' ? state.settings.bgId : state.settings.wmImageId;
+    const sel = role === 'bg' ? state.settings.design : state.settings.wmImageId;
     const imgs = state.images.filter(i => i.role === role);
     const key = imgs.map(i => i.id).join(',') + '|' + sel;
     if (list.dataset.key === key) continue;
@@ -169,21 +192,59 @@ function renderImages() {
 function imageListEvents(list, role) {
   const act = (e) => {
     const rm = e.target.closest('[data-rm]');
-    const k = role === 'bg' ? 'bgId' : 'wmImageId';
+    const k = role === 'bg' ? 'design' : 'wmImageId';
     if (rm) {
       const id = rm.dataset.rm;
       const img = state.images.find(i => i.id === id);
       if (img) URL.revokeObjectURL(img.url);
       state.images = state.images.filter(i => i.id !== id);
-      if (state.settings[k] === id) state.settings[k] = null;
-      e.stopPropagation(); renderImages(); schedule(50); return;
+      if (role === 'bg') forgetDesign(id);
+      else if (state.settings.wmImageId === id) state.settings.wmImageId = null;
+      e.stopPropagation(); renderDesignPick(); renderDesignSelects(); renderChapters(); fillForm(); schedule(50); return;
     }
     const item = e.target.closest('.img-pick'); if (!item) return;
-    state.settings[k] = state.settings[k] === item.dataset.id ? null : item.dataset.id;
+    state.settings[k] = state.settings[k] === item.dataset.id ? (role === 'bg' ? 'none' : null) : item.dataset.id;
     if (role === 'wm' && state.settings[k]) state.settings.wmType = 'image';
     fillForm(); schedule(50);
   };
   list.addEventListener('click', act);
+}
+
+// a removed design must not stay in use anywhere
+function forgetDesign(id) {
+  const s = state.settings;
+  if (s.design === id) s.design = 'none';
+  if (s.coverDesign === id) s.coverDesign = 'same';
+  if (state.book) state.book.chapters.forEach(c => { if (c.design === id) c.design = 'book'; });
+  for (const k of Object.keys(state.pageDesigns)) if (state.pageDesigns[k] === id) delete state.pageDesigns[k];
+  saveSettings();
+}
+
+function clearBook() {
+  state.token++;
+  clearTimeout(state.timer);
+  state.book = null; state.fileName = ''; state.pageDesigns = {};
+  state.bytes = null; state.meta = null;
+  if (state.pdf) { const old = state.pdf; state.pdf = null; setTimeout(() => closePdf(old), 0); }
+  if (io) io.disconnect();
+  if (infoIo) infoIo.disconnect();
+  $('#pages').innerHTML = '';
+  $('#reportList').innerHTML = '';
+  $('#chapterList').innerHTML = '';
+  $('#fileChip').hidden = true; $('#clearBtn').hidden = true; $('#clearBtn2').hidden = true;
+  $('#downloadBtn').disabled = true;
+  hideError();
+  setStatus('', '');
+  $('#viewer').hidden = true;
+  $('#empty').hidden = false;
+  $('#emptyError').hidden = true;
+  setTab('preview');
+  toast('Book cleared. Drop a new Excel file to start again.');
+}
+function askClear() {
+  const d = $('#clearDialog');
+  d.returnValue = '';
+  if (d.showModal) d.showModal(); else if (window.confirm('Clear this book?')) clearBook();
 }
 
 /* ---------- file loading ---------- */
@@ -211,9 +272,11 @@ async function loadFile(file) {
 
 function setBook(wb, name) {
   $('#emptyError').hidden = true;
-  state.book = { sheets: wb.sheets, chapters: wb.sheets.map((sh, i) => ({ sheet: i, title: sh.name, include: true })) };
+  state.book = { sheets: wb.sheets, chapters: wb.sheets.map((sh, i) => ({ sheet: i, title: sh.name, include: true, design: 'book' })) };
+  state.pageDesigns = {};
   state.fileName = name;
   $('#fileChip').hidden = false;
+  $('#clearBtn').hidden = false; $('#clearBtn2').hidden = false;
   $('#fileName').textContent = name;
   renderChapters();
   showViewer();
@@ -253,6 +316,7 @@ function renderChapters() {
       <button class="icon-btn" type="button" data-act="up" aria-label="Move up" ${i === 0 ? 'disabled' : ''}><svg class="ico" aria-hidden="true"><use href="#i-up"/></svg></button>
       <button class="icon-btn" type="button" data-act="down" aria-label="Move down" ${i === chs.length - 1 ? 'disabled' : ''}><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></button>
       <span class="chapter__meta">${rows} row${rows === 1 ? '' : 's'} · ${cols} column${cols === 1 ? '' : 's'}${rows ? '' : ' · empty'}</span>
+      <label class="chapter__design"><span>Design</span><select data-act="design" aria-label="Design for ${escapeHtml(c.title)}">${designOptionsHtml(state.images, c.design && c.design !== 'book' ? c.design : '', 'Same as the book')}</select></label>
     </div>`;
   }).join('');
 }
@@ -268,6 +332,7 @@ function chapterEvents() {
     const row = e.target.closest('.chapter'); if (!row) return;
     const c = state.book.chapters[+row.dataset.i];
     if (e.target.dataset.act === 'inc') { c.include = e.target.checked; row.classList.toggle('is-off', !c.include); schedule(100); }
+    if (e.target.dataset.act === 'design') { c.design = e.target.value || 'book'; schedule(100); }
   });
   list.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
@@ -317,7 +382,11 @@ async function run() {
   hideError();
   try {
     await fontsReady();
-    const res = await buildBook(state.book, { ...state.settings }, state.images);
+    const s = { ...state.settings, pageDesigns: { ...state.pageDesigns } };
+    const used = new Set([s.design, s.coverDesign, ...Object.values(s.pageDesigns), ...state.book.chapters.map(c => c.design)]);
+    const pictures = await loadPictures(used);
+    const res = await buildBook(state.book, s, [...pictures, ...state.images]);
+    if (my !== state.token || !state.book) return; // book was cleared meanwhile
     state.bytes = res.bytes;
     state.meta = res;
     showReport(res.report);
@@ -325,13 +394,14 @@ async function run() {
     setStatus('ok', `${res.pages} page${res.pages > 1 ? 's' : ''} ready`);
     $('#downloadBtn').disabled = false;
   } catch (e) {
+    if (my !== state.token || !state.book) return;
     console.error(e);
     setStatus('', 'Needs a fix');
     showError(e.message || 'Something went wrong while making the book.');
   } finally {
     state.busy = false;
     $('#pages').classList.remove('is-stale');
-    if (state.pending) run();
+    if (state.pending && state.book) run();
   }
 }
 
@@ -364,12 +434,8 @@ async function showPdf(bytes, res) {
   if (infoIo) infoIo.disconnect();
   $$('canvas', pagesEl).forEach(cancelRender);
 
-  const front = res.pages - res.contentPages;
-  const labels = [];
-  for (let i = 0; i < res.pages; i++) {
-    if (i < front) labels.push(i === 0 && state.settings.cover ? 'Cover' : 'Contents');
-    else labels.push(`Page ${i - front + 1}`);
-  }
+  const meta = res.pagesMeta || [];
+  const labels = meta.map(m => m.label);
   const sizes = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const p = await pdf.getPage(i);
@@ -385,7 +451,15 @@ async function showPdf(bytes, res) {
     box.style.animationDelay = `${Math.min(i, 6) * 0.05}s`;
     box.setAttribute('role', 'img');
     box.setAttribute('aria-label', `${labels[i]} of ${sizes.length}`);
-    box.innerHTML = `<canvas></canvas><span class="pagebox__n">${labels[i]}</span>`;
+    const m = meta[i] || { key: String(i + 1), label: `Page ${i + 1}`, design: 'none', own: false };
+    const inherit = 'Auto';
+    box.innerHTML = `<canvas></canvas>
+      <div class="pagebox__bar">
+        <span class="pagebox__n">${escapeHtml(m.label)}</span>
+        <label class="page-design${m.own ? ' is-own' : ''}"><svg class="ico" aria-hidden="true"><use href="#i-palette"/></svg><span class="vh">Design for ${escapeHtml(m.label)}</span>
+          <select data-page="${escapeHtml(m.key)}">${designOptionsHtml(state.images, m.own ? m.design : '', inherit + ' (' + designName(m.design, state.images) + ')')}</select>
+        </label>
+      </div>`;
     frag.appendChild(box);
   });
   pagesEl.innerHTML = '';
@@ -409,6 +483,17 @@ async function showPdf(bytes, res) {
   }, { root: pagesEl, threshold: [0, 0.25, 0.5, 0.75, 1] });
   $$('.pagebox', pagesEl).forEach(b => infoIo.observe(b));
   $('#pageInfo').textContent = `${sizes.length} page${sizes.length > 1 ? 's' : ''}`;
+}
+
+function pageDesignEvents() {
+  $('#pages').addEventListener('change', (e) => {
+    const sel = e.target.closest('select[data-page]');
+    if (!sel) return;
+    const key = sel.dataset.page;
+    if (sel.value) state.pageDesigns[key] = sel.value; else delete state.pageDesigns[key];
+    toast(sel.value ? `${key === 'cover' ? 'Cover' : key === 'toc' ? 'Contents' : 'Page ' + key}: ${designName(sel.value, state.images)}` : 'Back to the chapter / book design');
+    schedule(50);
+  });
 }
 
 function fitWidth() {
@@ -464,8 +549,8 @@ function openConfirm() {
   if (!state.bytes) return;
   const s = state.settings;
   const size = s.pageSize === 'Custom' ? `${s.customW} × ${s.customH} mm` : s.pageSize;
-  const tpl = (TEMPLATES.find(t => t.id === s.template) || {}).name || '';
-  $('#confirmText').textContent = `${state.meta.pages} pages · ${size} · ${tpl} design · ${(state.bytes.length / 1024 / 1024).toFixed(1)} MB`;
+  const own = Object.keys(state.pageDesigns).length;
+  $('#confirmText').textContent = `${state.meta.pages} pages · ${size} · ${designName(s.design, state.images)}${own ? ` + ${own} page design${own > 1 ? 's' : ''}` : ''} · ${(state.bytes.length / 1024 / 1024).toFixed(1)} MB`;
   $('#confirmCheck').checked = false;
   $('#confirmGo').disabled = true;
   const d = $('#confirm');
@@ -497,6 +582,7 @@ function init() {
   fillForm();
   accordions();
   chapterEvents();
+  pageDesignEvents();
   imageListEvents($('#bgList'), 'bg');
   imageListEvents($('#wmList'), 'wm');
 
@@ -517,13 +603,18 @@ function init() {
   new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { if ($('.pagebox')) rezoom(state.zoom); }, 150); }).observe($('#pages'));
 
   $('#downloadBtn').addEventListener('click', openConfirm);
+  $('#clearBtn').addEventListener('click', askClear);
+  $('#clearBtn2').addEventListener('click', askClear);
+  $('#clearDialog').addEventListener('close', () => { if ($('#clearDialog').returnValue === 'clear') clearBook(); });
   $('#confirmCheck').addEventListener('change', (e) => { $('#confirmGo').disabled = !e.target.checked; });
   $('#confirm').addEventListener('close', () => { if ($('#confirm').returnValue === 'ok') download(); });
 
   $('#resetBtn').addEventListener('click', () => {
     const keepTitle = state.settings.title;
     state.settings = { ...DEFAULTS, title: keepTitle };
-    saveSettings(); fillForm(); refreshThumbs(); schedule(50);
+    state.pageDesigns = {};
+    if (state.book) state.book.chapters.forEach(c => { c.design = 'book'; });
+    saveSettings(); renderDesignPick(); renderDesignSelects(); renderChapters(); fillForm(); schedule(50);
     toast('Settings are back to normal');
   });
 
@@ -543,7 +634,12 @@ function init() {
 export function enterStudio(params) {
   init();
   const t = params && params.get('template');
-  if (t && TEMPLATES.some(x => x.id === t)) { state.settings.template = t; saveSettings(); syncDependents(); if (state.book) schedule(50); }
+  const d = (params && params.get('design')) || (t && TEMPLATES.some(x => x.id === t) ? 'tpl:' + t : null);
+  if (d && allDesigns(state.images).some(x => x.id === d)) {
+    state.settings.design = d; saveSettings(); syncDependents();
+    toast(`${designName(d, state.images)} design picked for the whole book`);
+    if (state.book) schedule(50);
+  }
   if (params && params.get('sample') === '1' && !state.book) loadSample();
   if (state.book && $('.pagebox')) setTimeout(() => rezoom(state.zoom), 50);
   if (!state.book) setTab('preview');

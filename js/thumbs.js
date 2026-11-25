@@ -23,11 +23,11 @@ const MINI = {
 
 let queue = Promise.resolve();
 
-export function drawThumb(canvas, templateId, settings, kind = 'content', cssWidth = 150) {
+export function drawThumb(canvas, designId, settings, kind = 'content', cssWidth = 150) {
   queue = queue.then(async () => {
     const opts = {
-      ...settings, template: templateId, cover: kind === 'cover', toc: false,
-      pageSize: 'A4', orientation: 'portrait', bgId: null, wmType: 'none', baseSize: 'auto', margin: 'auto', mirror: false,
+      ...settings, design: designId, coverDesign: 'same', pageDesigns: {}, cover: kind === 'cover', toc: false,
+      pageSize: 'A4', orientation: 'portrait', wmType: 'none', baseSize: 'auto', margin: 'auto', mirror: false,
       title: kind === 'cover' ? (settings.title || 'My Maths Book') : settings.title,
     };
     try {
@@ -37,7 +37,7 @@ export function drawThumb(canvas, templateId, settings, kind = 'content', cssWid
       closePdf(pdf);
       canvas.dataset.ok = '1';
     } catch (e) {
-      console.warn('thumb', templateId, e);
+      console.warn('thumb', designId, e);
     }
   });
   return queue;

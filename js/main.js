@@ -3,6 +3,7 @@ import { TEMPLATES } from './templates.js';
 import { DEFAULTS } from './book-engine.js';
 import { drawThumb } from './thumbs.js';
 import { initInstall } from './install.js';
+import { PICTURES } from './designs.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -101,6 +102,7 @@ async function route(first = false) {
       if (on && !first) { void v.offsetWidth; v.classList.add('is-entering'); }
     });
     window.scrollTo({ top: 0, behavior: 'instant' });
+    document.body.classList.toggle('in-studio', view === 'studio');
     document.title = view === 'studio' ? 'Studio · ടീച്ചർ.Chumi' : 'ടീച്ചർ.Chumi — Excel to kids\' PDF books';
     if (view === 'studio') (await getStudio()).enterStudio(params);
     else requestAnimationFrame(onScroll);
@@ -224,17 +226,21 @@ function nav() {
 
 /* ---------- designs marquee: real template previews ---------- */
 function designs() {
+  const items = [
+    ...PICTURES.map(p => ({ id: p.id, name: p.name, src: p.thumb })),
+    ...TEMPLATES.map(t => ({ id: 'tpl:' + t.id, name: t.name, tpl: t.id })),
+  ];
   const card = (t, hidden) => `
-    <button class="tpl-card" type="button" data-tpl="${t.id}" ${hidden ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Start a book with the ${t.name} design"`}>
-      <span class="tpl-card__page"><img alt="" data-img="${t.id}"></span>
+    <button class="tpl-card" type="button" data-design="${t.id}" ${hidden ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Start a book with the ${t.name} design"`}>
+      <span class="tpl-card__page"><img alt="" ${t.src ? `src="${t.src}" class="is-ok" loading="lazy"` : `data-img="${t.tpl}"`}></span>
       <span class="tpl-card__name">${t.name}</span>
     </button>`;
-  row.innerHTML = [0, 1, 2].map(k => TEMPLATES.map(t => card(t, k !== 1)).join('')).join('');
+  row.innerHTML = [0, 1, 2].map(k => items.map(t => card(t, k !== 1)).join('')).join('');
   row.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-tpl]');
+    const b = e.target.closest('[data-design]');
     if (!b) return;
     lastClick = [e.clientX, e.clientY];
-    location.hash = `#/studio?template=${b.dataset.tpl}`;
+    location.hash = `#/studio?design=${encodeURIComponent(b.dataset.design)}`;
   });
   const io = new IntersectionObserver((entries) => {
     if (!entries.some(e => e.isIntersecting)) return;
@@ -243,7 +249,7 @@ function designs() {
     ready().then(async () => {
       for (const t of TEMPLATES) {
         const cv = document.createElement('canvas');
-        await drawThumb(cv, t.id, { ...DEFAULTS }, 'cover', 190);
+        await drawThumb(cv, 'tpl:' + t.id, { ...DEFAULTS }, 'cover', 190);
         if (!cv.dataset.ok) continue;
         const url = cv.toDataURL('image/jpeg', 0.86);
         $$(`img[data-img="${t.id}"]`, row).forEach(img => { img.src = url; img.classList.add('is-ok'); });

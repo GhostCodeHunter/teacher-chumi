@@ -1,9 +1,19 @@
 // ടീച്ചർ.Chumi service worker: works offline once installed or visited.
-const VERSION = 'chumi-v3';
+const VERSION = 'chumi-v5';
 const SHELL = [
   './',
   "./assets/chumi-bird-sm.webp",
   "./assets/chumi-bird.webp",
+  "./assets/designs/classroom-fun-thumb.jpg",
+  "./assets/designs/classroom-fun.jpg",
+  "./assets/designs/leafy-garden-thumb.jpg",
+  "./assets/designs/leafy-garden.jpg",
+  "./assets/designs/pastel-bows-thumb.jpg",
+  "./assets/designs/pastel-bows.jpg",
+  "./assets/designs/school-doodles-thumb.jpg",
+  "./assets/designs/school-doodles.jpg",
+  "./assets/designs/sunny-kids-thumb.jpg",
+  "./assets/designs/sunny-kids.jpg",
   "./assets/icons/apple-touch-icon.png",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
@@ -12,6 +22,8 @@ const SHELL = [
   "./css/style.css",
   "./index.html",
   "./js/book-engine.js",
+  "./js/designs.js",
+  "./js/install.js",
   "./js/main.js",
   "./js/pdfview.js",
   "./js/sample.js",
