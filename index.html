@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Baloo+Chettan+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" href="assets/chumi-bird-sm.webp" as="image">
   <link rel="stylesheet" href="css/style.css">
   <script src="lib/jszip.min.js" defer></script>
   <script src="lib/pdf-lib.min.js" defer></script>
@@ -49,7 +50,7 @@
 <!-- ============ LOADER ============ -->
 <div class="loader" id="loader" role="status" aria-live="polite">
   <div class="loader__inner">
-    <img class="loader__dino" src="assets/dino.svg" alt="" width="150" height="144">
+    <img class="loader__dino" src="assets/chumi-bird-sm.webp" alt="" width="130" height="163">
     <div class="loader__name" aria-label="ടീച്ചർ.Chumi"><span class="ml">ടീച്ചർ</span><span class="dot">.</span><span class="word" data-split>Chumi</span></div>
     <div class="beads" id="loaderBeads" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="loader__count"><span id="loaderCount">0</span>%</div>
@@ -57,7 +58,7 @@
 </div>
 
 <!-- page transition -->
-<div class="wipe" id="wipe" aria-hidden="true"><img src="assets/dino.svg" alt="" width="120" height="115"></div>
+<div class="wipe" id="wipe" aria-hidden="true"><img src="assets/chumi-bird-sm.webp" alt="" width="110" height="138"></div>
 
 <!-- ============ LANDING ============ -->
 <main id="view-home" class="view is-active" data-view="home">
@@ -103,7 +104,7 @@
         </div>
         <div class="page-card__num">1</div>
       </div>
-      <img class="hero__dino" src="assets/dino.svg" alt="" width="260" height="250" data-depth="1">
+      <img class="hero__dino" src="assets/chumi-bird.webp" alt="" width="320" height="401" data-depth="1" fetchpriority="high">
       <span class="tile tile--a" data-depth="1.4">1<i></i></span>
       <span class="tile tile--b" data-depth="1.8">2<i></i></span>
       <span class="tile tile--c" data-depth="1.2">3<i></i></span>
@@ -140,7 +141,7 @@
           <div class="sheet__done"><svg class="ico"><use href="#i-download"/></svg> book.pdf</div>
         </div>
         <div class="sheet sheet--back"></div>
-        <img class="story__dino" src="assets/dino.svg" alt="" width="150" height="144">
+        <img class="story__dino" src="assets/chumi-bird-sm.webp" alt="" width="150" height="188" loading="lazy">
       </div>
     </div>
   </section>
@@ -171,7 +172,7 @@
 
   <section class="cta" data-reveal>
     <div class="cta__box">
-      <img class="cta__dino" src="assets/dino.svg" alt="" width="190" height="182">
+      <img class="cta__dino" src="assets/chumi-bird-sm.webp" alt="" width="170" height="213" loading="lazy">
       <div>
         <h2>Ready to make your book?</h2>
         <p>One Excel file. About a minute.</p>
@@ -410,7 +411,7 @@
       <div class="empty" id="empty">
         <label class="drop drop--big" id="dropBig">
           <input type="file" id="fileInputBig" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
-          <img class="drop__dino" src="assets/dino.svg" alt="" width="140" height="134">
+          <img class="drop__dino" src="assets/chumi-bird-sm.webp" alt="" width="120" height="150">
           <h2>Drop your Excel file here</h2>
           <p>Each sheet becomes a chapter. Your file stays on this computer.</p>
           <span class="btn btn--primary btn--lg"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span>Choose Excel file</span></span>
