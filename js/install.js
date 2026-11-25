@@ -7,7 +7,8 @@ const show = (on) => $$('[data-install]').forEach((b) => { b.hidden = !on; });
 
 export function initInstall(toast) {
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('offline mode not available', e)));
+    const reg = () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('offline mode not available', e));
+    if (document.readyState === 'complete') reg(); else addEventListener('load', reg, { once: true });
   }
   if (standalone()) return; // already running as the installed app
   // show the button everywhere; browsers that can't prompt get short instructions
