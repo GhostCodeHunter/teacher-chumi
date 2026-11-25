@@ -1,5 +1,5 @@
 // ടീച്ചർ.Chumi service worker: works offline once installed or visited.
-const VERSION = 'chumi-v5';
+const VERSION = 'chumi-v6';
 const SHELL = [
   './',
   "./assets/chumi-bird-sm.webp",
@@ -65,7 +65,8 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// stale-while-revalidate: open instantly from the cache, update it in the background
+// app files: network first (always the newest version), cache when offline
+// fonts: cache first
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -75,12 +76,21 @@ self.addEventListener('fetch', (e) => {
   if (!sameOrigin && !fonts) return;
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
-      const hit = await cache.match(req, { ignoreSearch: sameOrigin });
-      const net = fetch(req).then((res) => {
+      if (fonts) {
+        const hit = await cache.match(req);
+        if (hit) return hit;
+        const res = await fetch(req);
         if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
         return res;
-      }).catch(() => hit || (req.mode === 'navigate' ? cache.match('./index.html') : undefined));
-      return hit || net;
+      }
+      try {
+        const res = await fetch(req);
+        if (res && res.ok) cache.put(req, res.clone());
+        return res;
+      } catch {
+        const hit = await cache.match(req, { ignoreSearch: true });
+        return hit || (req.mode === 'navigate' ? cache.match('./index.html') : Response.error());
+      }
     })
   );
 });
