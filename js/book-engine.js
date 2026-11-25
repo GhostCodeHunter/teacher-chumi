@@ -1,6 +1,7 @@
 // ടീച്ചർ.Chumi — book engine
 // Turns sheets into a laid-out, print-ready PDF (vector text, same fonts everywhere).
 import { TEMPLATES, insetPt, roundRect } from './templates.js';
+import { renderWorkbookPages } from './excel-print.js';
 
 const MM = 72 / 25.4;
 const topRound = (x, y, w, h, r) => `M${x} ${y + h} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + w - r} Q${x + w} ${y} ${x + w} ${y + r} V${y + h} Z`;
@@ -14,7 +15,7 @@ export const KID_PALETTE = ['#EC6A73', '#F0A04B', '#5DB8A5', '#5B8FE0', '#9273CF
 
 export const DEFAULTS = {
   title: 'My Maths Book', subtitle: 'Practice Workbook', author: '', institution: '',
-  contentMode: 'exact', cover: false, toc: false,
+  contentMode: 'print', excelFitOne: false, cover: false, toc: false,
   pageSize: 'A4', customW: 210, customH: 297, orientation: 'portrait',
   margin: 'auto', marginMM: 18, mirror: false,
   textFont: 'helvetica', numFont: 'helvetica', numBold: true,
@@ -143,7 +144,18 @@ class TextEngine {
   width(text, family, bold, size) {
     if (!text) return 0;
     const f = this.font(family, bold);
-    if (this.encodable(text, f)) return f.widthOfTextAtSize(text, size);
+    if (this.encodable(text, f)) {
+      // pdf-lib measures with kerning but draws without it: add plain glyph widths
+      const cw = this.cw || (this.cw = new Map());
+      let t = 0;
+      for (const ch of text) {
+        const key = f.name + ch;
+        let v = cw.get(key);
+        if (v === undefined) { v = f.widthOfTextAtSize(ch, 1000); cw.set(key, v); }
+        t += v;
+      }
+      return t / 1000 * size;
+    }
     this.cx.font = this.cssFont(family, bold, 100);
     return (this.cx.measureText(text).width / 100) * size;
   }
@@ -793,6 +805,7 @@ function fitRect(iw, ih, W, H, mode) {
 // ---------- main ----------
 export async function buildBook(book, settings, images = []) {
   const s = { ...DEFAULTS, ...settings };
+  if (s.contentMode === 'print' && !book.printWb) s.contentMode = 'exact'; // CSV / sample: no Excel page setup to follow
   const { PDFDocument, StandardFonts, rgb, degrees } = window.PDFLib;
   const report = [];
   const doc = await PDFDocument.create();
@@ -815,6 +828,73 @@ export async function buildBook(book, settings, images = []) {
   Object.entries(pageDesigns).forEach(([k, v]) => { if (k !== 'cover') used.add(v); });
   s.__designs = [...used].filter(Boolean).map(id => resolveDesign(id, images)).filter(d => d.kind !== 'none');
   const TC = tplColours(C, rgb);
+
+  const imgCache = new Map();
+  const wmImg = images.find(i => i.id === s.wmImageId);
+  const wmRef = s.wmType === 'image' && wmImg ? await embedImage(doc, wmImg, imgCache) : null;
+  const pagesMeta = [];
+
+  const decorate = async (p, w, h, fr, kind, index, designId) => {
+    const d = resolveDesign(designId, images);
+    if (d.kind === 'img') {
+      const ref = await embedImage(doc, d.img, imgCache);
+      if (d.img.fill) p.drawRectangle({ x: 0, y: 0, width: w, height: h, color: rgb(...hexToRgb01(d.img.fill)) });
+      p.drawImage(ref, { ...pictureRect({ ...d.img, w: ref.width, h: ref.height }, w, h, s), opacity: clamp(+s.bgOpacity, 0.05, 1) });
+    } else if (d.kind === 'tpl') {
+      const ctx = { page: p, w, h, m: { l: fr.m.inner, r: fr.m.outer, t: fr.m.t, b: fr.m.b }, c: TC, rgb, deg: degrees, index };
+      try {
+        if (kind === 'cover') d.tpl.cover.call(d.tpl, ctx); else d.tpl.page.call(d.tpl, ctx);
+      } catch (e) { console.warn('template', e); }
+    }
+    if (!s.wmOnTop) await watermark(p, w, h);
+  };
+  const watermark = async (p, w, h) => {
+    if (s.wmType === 'text' && s.wmText && s.wmText.trim()) {
+      const text = cleanLine(s.wmText);
+      const diag = Math.hypot(w, h);
+      const target = diag * 0.7 * clamp(+s.wmScale, 10, 100) / 100;
+      const fs = clamp(target / Math.max(1, T.width(text, s.textFont, true, 1)), 8, 220);
+      const tw = T.width(text, s.textFont, true, fs), th = fs * 0.7;
+      const a = (+s.wmAngle || 0) * Math.PI / 180;
+      const x = w / 2 - (tw / 2 * Math.cos(a) - th / 2 * Math.sin(a));
+      const y = h / 2 - (tw / 2 * Math.sin(a) + th / 2 * Math.cos(a));
+      await T.draw(p, text, x, y, s.textFont, true, fs, hexToRgb01(s.wmColor), { opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0), maxPx: 1400 });
+    } else if (wmRef) {
+      const iw = w * 0.8 * clamp(+s.wmScale, 10, 100) / 100;
+      const ih = iw * wmRef.height / wmRef.width;
+      const a = (+s.wmAngle || 0) * Math.PI / 180;
+      const x = w / 2 - (iw / 2 * Math.cos(a) - ih / 2 * Math.sin(a));
+      const y = h / 2 - (iw / 2 * Math.sin(a) + ih / 2 * Math.cos(a));
+      p.drawImage(wmRef, { x, y, width: iw, height: ih, opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0) });
+    }
+  };
+
+
+  // ---- Print like Excel: draw every sheet exactly the way Excel prints it ----
+  if (s.contentMode === 'print' && book.printWb) {
+    const allFonts = {
+      ...fonts,
+      helveticaI: await doc.embedFont(F.HelveticaOblique), helveticaBI: await doc.embedFont(F.HelveticaBoldOblique),
+      timesI: await doc.embedFont(F.TimesRomanItalic), timesBI: await doc.embedFont(F.TimesRomanBoldItalic),
+      courierI: await doc.embedFont(F.CourierOblique), courierBI: await doc.embedFont(F.CourierBoldOblique),
+    };
+    const chosen = book.chapters.filter(c => c.include).map(ch => {
+      const sheet = book.sheets[ch.sheet];
+      const ps = sheet && book.printWb.sheets.find(x => x.name === sheet.name);
+      return ps ? { sheet: ps, title: ch.title || sheet.name, design: ch.design && ch.design !== 'book' ? ch.design : null } : null;
+    }).filter(Boolean);
+    if (!chosen.length) throw new Error('No sheets are selected. Tick at least one sheet.');
+    const res = await renderWorkbookPages(doc, book.printWb, chosen, {
+      fonts: allFonts, pageDesigns, bookDesign: s.design, fitOne: !!s.excelFitOne, fileName: book.fileName || '',
+      decorate: (p, w, h, design, index, m) => decorate(p, w, h, { m: { inner: m.l, outer: m.r, t: m.t, b: m.b } }, 'content', index, design),
+      watermarkOnTop: s.wmOnTop ? (p, w, h) => watermark(p, w, h) : null,
+    });
+    report.push({ k: 'ok', t: `Printed like Excel: ${chosen.length} sheet${chosen.length > 1 ? 's' : ''} on ${res.totalPages} page${res.totalPages > 1 ? 's' : ''}, with Excel's page setup, borders, pictures and shapes` });
+    report.push(...res.report);
+    if (!res.totalPages) throw new Error('These sheets have nothing to print.');
+    const bytes = await doc.save({ useObjectStreams: true });
+    return { bytes, report, pages: doc.getPageCount(), contentPages: res.totalPages, fontSize: 11, pagesMeta: res.pages };
+  }
 
   // 1. analyse + plan chapters
   const chapters = [];
@@ -858,46 +938,6 @@ export async function buildBook(book, settings, images = []) {
 
   // 3. front matter
   const portrait = frame(s, s.orientation === 'landscape');
-  const imgCache = new Map();
-  const wmImg = images.find(i => i.id === s.wmImageId);
-  const wmRef = s.wmType === 'image' && wmImg ? await embedImage(doc, wmImg, imgCache) : null;
-  const pagesMeta = [];
-
-  const decorate = async (p, w, h, fr, kind, index, designId) => {
-    const d = resolveDesign(designId, images);
-    if (d.kind === 'img') {
-      const ref = await embedImage(doc, d.img, imgCache);
-      if (d.img.fill) p.drawRectangle({ x: 0, y: 0, width: w, height: h, color: rgb(...hexToRgb01(d.img.fill)) });
-      p.drawImage(ref, { ...pictureRect({ ...d.img, w: ref.width, h: ref.height }, w, h, s), opacity: clamp(+s.bgOpacity, 0.05, 1) });
-    } else if (d.kind === 'tpl') {
-      const ctx = { page: p, w, h, m: { l: fr.m.inner, r: fr.m.outer, t: fr.m.t, b: fr.m.b }, c: TC, rgb, deg: degrees, index };
-      try {
-        if (kind === 'cover') d.tpl.cover.call(d.tpl, ctx); else d.tpl.page.call(d.tpl, ctx);
-      } catch (e) { console.warn('template', e); }
-    }
-    if (!s.wmOnTop) await watermark(p, w, h);
-  };
-  const watermark = async (p, w, h) => {
-    if (s.wmType === 'text' && s.wmText && s.wmText.trim()) {
-      const text = cleanLine(s.wmText);
-      const diag = Math.hypot(w, h);
-      const target = diag * 0.7 * clamp(+s.wmScale, 10, 100) / 100;
-      const fs = clamp(target / Math.max(1, T.width(text, s.textFont, true, 1)), 8, 220);
-      const tw = T.width(text, s.textFont, true, fs), th = fs * 0.7;
-      const a = (+s.wmAngle || 0) * Math.PI / 180;
-      const x = w / 2 - (tw / 2 * Math.cos(a) - th / 2 * Math.sin(a));
-      const y = h / 2 - (tw / 2 * Math.sin(a) + th / 2 * Math.cos(a));
-      await T.draw(p, text, x, y, s.textFont, true, fs, hexToRgb01(s.wmColor), { opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0), maxPx: 1400 });
-    } else if (wmRef) {
-      const iw = w * 0.8 * clamp(+s.wmScale, 10, 100) / 100;
-      const ih = iw * wmRef.height / wmRef.width;
-      const a = (+s.wmAngle || 0) * Math.PI / 180;
-      const x = w / 2 - (iw / 2 * Math.cos(a) - ih / 2 * Math.sin(a));
-      const y = h / 2 - (iw / 2 * Math.sin(a) + ih / 2 * Math.cos(a));
-      p.drawImage(wmRef, { x, y, width: iw, height: ih, opacity: clamp(+s.wmOpacity, 0.02, 1), rotate: degrees(+s.wmAngle || 0) });
-    }
-  };
-
   let pdfIndex = 0;
   if (s.cover) {
     const { w, h } = portrait;

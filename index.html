@@ -224,11 +224,13 @@
         <div class="group__body">
           <div class="field"><span class="label">Content</span>
             <div class="seg" role="radiogroup" aria-label="Content">
-              <label><input type="radio" name="contentMode" value="exact" data-k="contentMode"><span>Same as Excel</span></label>
-              <label><input type="radio" name="contentMode" value="tidy" data-k="contentMode"><span>Tidy up for me</span></label>
+              <label><input type="radio" name="contentMode" value="print" data-k="contentMode"><span>Print like Excel</span></label>
+              <label><input type="radio" name="contentMode" value="exact" data-k="contentMode"><span>Same content</span></label>
+              <label><input type="radio" name="contentMode" value="tidy" data-k="contentMode"><span>Tidy up</span></label>
             </div>
             <small class="hint" id="modeHint"></small>
           </div>
+          <label class="switch print-only"><input type="checkbox" data-k="excelFitOne"><span></span>Fit each sheet on one page</label>
           <label class="drop drop--small" id="dropSmall">
             <input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.xls" class="vh">
             <svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>
@@ -241,7 +243,7 @@
       </section>
 
       <!-- Book details -->
-      <section class="group">
+      <section class="group layout-only">
         <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sun)"></span>2. Book details<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <div class="field"><label for="s-title">Book title</label><input id="s-title" data-k="title" type="text" maxlength="120"></div>
@@ -257,7 +259,7 @@
       </section>
 
       <!-- Page -->
-      <section class="group">
+      <section class="group layout-only">
         <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--mint)"></span>3. Page size &amp; margins<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <div class="field"><label for="s-pageSize">Page size</label>
@@ -292,7 +294,7 @@
       </section>
 
       <!-- Text & numbers -->
-      <section class="group">
+      <section class="group layout-only">
         <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>4. Text &amp; numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <div class="row2">
@@ -326,7 +328,7 @@
       </section>
 
       <!-- Tables -->
-      <section class="group">
+      <section class="group layout-only">
         <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--grape)"></span>5. Tables<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <div class="field"><span class="label">Table style</span>
@@ -414,7 +416,7 @@
       </section>
 
       <!-- Header/footer -->
-      <section class="group">
+      <section class="group layout-only">
         <button class="group__head" aria-expanded="false"><span class="dot" style="--c:var(--sky)"></span>8. Header &amp; page numbers<svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg></button>
         <div class="group__body">
           <label class="switch"><input type="checkbox" data-k="runningHeader"><span></span>Book and chapter name at the top</label>

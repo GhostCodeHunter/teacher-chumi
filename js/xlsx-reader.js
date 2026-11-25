@@ -105,7 +105,7 @@ async function readXlsx(buf) {
     sheets.push({ name: attr(sh, 'name') || `Sheet ${sheets.length + 1}`, ...parsed });
   }
   if (!sheets.length) throw new Error('No visible sheets with data were found in this workbook.');
-  return { sheets };
+  return { sheets, raw: buf };
 }
 
 function classifyFmt(id, code) {

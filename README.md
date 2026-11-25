@@ -6,7 +6,8 @@ Upload an `.xlsx` or `.csv` file. Each sheet becomes a chapter. ടീച്ച�
 
 ## Features
 
-- **Same as Excel (default).** Every row, column, blank cell (like an empty Answer column), merged cell and number stays exactly as Excel shows it, with Excel's column widths and bold text. Only margins, padding, fonts and alignment are arranged. Switch to *Tidy up for me* if you want Chumi to clean the sheet too.
+- **Print like Excel (default).** The PDF comes out the way Excel prints the workbook: each sheet's page setup (paper, orientation, margins, scale or fit-to-page, print area, page breaks, centring, headers and footers), cell fills, borders, fonts, merged cells, pictures and shapes. Use the *Fit each sheet on one page* switch if a sheet spills onto extra pages. EMF/WMF pictures can't be shown in a browser: save them as PNG in Excel.
+- **Same content.** Every row, column, blank cell (like an empty Answer column), merged cell and number stays exactly as Excel shows it, with Excel's column widths and bold text. Only margins, padding, fonts and alignment are arranged. Switch to *Tidy up for me* if you want Chumi to clean the sheet too.
 
 - **Excel in, PDF out.** `.xlsx`, `.xlsm` and `.csv` files. Hidden sheets, rows and columns are skipped like in Excel.
 - **Auto tidy.** Empty rows and columns are removed, header rows are found and repeated on each new page, one-cell rows become titles, small tables are kept on one page, and wide tables shrink a little, turn sideways (Auto orientation) or split into even parts.
@@ -42,6 +43,8 @@ js/studio.js        settings, upload, live preview, download
 js/book-engine.js   layout engine that builds the PDF
 js/templates.js     page designs
 js/xlsx-reader.js   Excel / CSV reader
+js/excel-print.js   prints a workbook like Excel (page setup, borders, pictures, shapes)
+js/excel-format.js  Excel number and date formats
 js/pdfview.js       PDF preview (pdf.js)
 js/thumbs.js        template previews
 js/sample.js        sample maths book

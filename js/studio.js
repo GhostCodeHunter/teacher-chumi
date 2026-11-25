@@ -9,7 +9,7 @@ import { PICTURES, allDesigns, designName, designOptionsHtml, loadPictures } fro
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const KEY = 'teacherChumi.settings.v5';
+const KEY = 'teacherChumi.settings.v6';
 
 const state = {
   book: null, fileName: '', images: [], pageDesigns: {},
@@ -22,7 +22,7 @@ const state = {
 function loadSettings() {
   try {
     let raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (!raw) { raw = JSON.parse(localStorage.getItem('teacherChumi.settings.v4') || 'null'); if (raw) raw.wmOnTop = true; }
+    if (!raw) { raw = JSON.parse(localStorage.getItem('teacherChumi.settings.v5') || 'null'); if (raw) raw.contentMode = 'print'; }
     if (raw && typeof raw === 'object') {
       const out = { ...DEFAULTS };
       for (const k of Object.keys(DEFAULTS)) if (k in raw && typeof raw[k] === typeof DEFAULTS[k] || (k in raw && (DEFAULTS[k] === null || k === 'baseSize' || k === 'decimals'))) out[k] = raw[k];
@@ -86,10 +86,16 @@ function fillForm() {
 function syncDependents() {
   const s = state.settings;
   $('#customSize').hidden = s.pageSize !== 'Custom';
-  $('#modeHint').textContent = s.contentMode === 'exact'
-    ? 'Every row, column, blank cell and number stays as in your Excel. Only margins, fonts and alignment are arranged.'
-    : 'Chumi also removes empty rows/columns, makes titles and gives numbers the same decimals.';
-  $$('.tidy-only').forEach(el => { el.hidden = s.contentMode === 'exact'; });
+  const canPrint = !state.book || !!state.book.raw;
+  const mode = s.contentMode === 'print' && !canPrint ? 'exact' : s.contentMode;
+  $('#modeHint').textContent = s.contentMode === 'print'
+    ? (canPrint ? 'Each sheet comes out like Excel\'s own print: same page size, margins, borders, colours, pictures and shapes.' : 'This file has no Excel page setup (CSV or sample), so "Same content" is used.')
+    : s.contentMode === 'exact'
+      ? 'Every row, column, blank cell and number stays as in your Excel. Chumi arranges margins, fonts and alignment.'
+      : 'Chumi also removes empty rows/columns, makes titles and gives numbers the same decimals.';
+  $$('.tidy-only').forEach(el => { el.hidden = mode !== 'tidy'; });
+  $$('.print-only').forEach(el => { el.hidden = mode !== 'print'; });
+  $$('.layout-only').forEach(el => { el.hidden = mode === 'print'; });
   $('#customMargin').hidden = s.margin !== 'custom';
   $('.wm-text').hidden = s.wmType !== 'text';
   $('.wm-image').hidden = s.wmType !== 'image';
@@ -264,6 +270,7 @@ async function loadFile(file) {
   try {
     const wb = await readFile(file);
     setBook(wb, file.name);
+  syncDependents();
     if (state.settings.title === DEFAULTS.title || !state.settings.title) { state.settings.title = prettyTitle(file.name) || DEFAULTS.title; fillForm(); saveSettings(); }
     toast(`Loaded ${wb.sheets.length} sheet${wb.sheets.length > 1 ? 's' : ''}`);
   } catch (e) {
@@ -277,7 +284,7 @@ async function loadFile(file) {
 
 function setBook(wb, name) {
   $('#emptyError').hidden = true;
-  state.book = { sheets: wb.sheets, chapters: wb.sheets.map((sh, i) => ({ sheet: i, title: sh.name, include: true, design: 'book' })) };
+  state.book = { sheets: wb.sheets, raw: wb.raw || null, printWb: null, fileName: name, chapters: wb.sheets.map((sh, i) => ({ sheet: i, title: sh.name, include: true, design: 'book' })) };
   state.pageDesigns = {};
   state.fileName = name;
   $('#fileChip').hidden = false;
@@ -285,6 +292,7 @@ function setBook(wb, name) {
   $('#fileName').textContent = name;
   renderChapters();
   showViewer();
+  syncDependents();
   schedule(0);
 }
 
@@ -390,6 +398,15 @@ async function run() {
     const s = { ...state.settings, pageDesigns: { ...state.pageDesigns } };
     const used = new Set([s.design, s.coverDesign, ...Object.values(s.pageDesigns), ...state.book.chapters.map(c => c.design)]);
     const pictures = await loadPictures(used);
+    if (s.contentMode === 'print' && state.book.raw && !state.book.printWb) {
+      setStatus('busy', 'Reading pictures and page setup…');
+      const book = state.book;
+      const { parseWorkbookForPrint } = await import('./excel-print.js');
+      const parsed = await parseWorkbookForPrint(book.raw);
+      if (book !== state.book) return;
+      book.printWb = parsed;
+      setStatus('busy', 'Arranging pages…');
+    }
     const res = await buildBook(state.book, s, [...pictures, ...state.images]);
     if (my !== state.token || !state.book) return; // book was cleared meanwhile
     state.bytes = res.bytes;
